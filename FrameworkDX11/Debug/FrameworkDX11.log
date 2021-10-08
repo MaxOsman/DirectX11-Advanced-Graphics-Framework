@@ -1,0 +1,5 @@
+﻿  imgui_impl_dx11.cpp
+  imgui_impl_win32.cpp
+  Generating Code...
+Camera.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
+  FrameworkDX11.vcxproj -> E:\Uni\_Year 3\Advanced Graphics\dx11\Debug\FrameworkDX11.exe
