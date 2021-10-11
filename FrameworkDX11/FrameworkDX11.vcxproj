@@ -353,6 +353,7 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="DDSTextureLoader.h" />
+    <ClInclude Include="Debug.h" />
     <ClInclude Include="DrawableGameObject.h" />
     <ClInclude Include="imgui-master\imconfig.h" />
     <ClInclude Include="imgui-master\imgui.h" />
@@ -370,6 +371,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DDSTextureLoader.cpp" />
+    <ClCompile Include="Debug.cpp" />
     <ClCompile Include="DrawableGameObject.cpp" />
     <ClCompile Include="imgui-master\imgui.cpp" />
     <ClCompile Include="imgui-master\imgui_draw.cpp" />
@@ -385,6 +387,7 @@
   <ItemGroup>
     <FxCompile Include="shader.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

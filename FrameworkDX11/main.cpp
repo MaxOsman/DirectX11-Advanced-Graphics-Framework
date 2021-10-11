@@ -437,6 +437,7 @@ HRESULT	InitMesh()
 HRESULT	InitWorld(int width, int height)
 {
     g_Camera = Camera(WINDOW_HEIGHT, WINDOW_WIDTH, XMFLOAT3(0.0f, 0.0f, -3.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+    g_Debug.Print(3.141592f);
 
 	return S_OK;
 }
@@ -470,7 +471,6 @@ void CleanupDevice()
     if( g_pSwapChain ) g_pSwapChain->Release();
     if( g_pImmediateContext1 ) g_pImmediateContext1->Release();
     if( g_pImmediateContext ) g_pImmediateContext->Release();
-
 
     ID3D11Debug* debugDevice = nullptr;
     g_pd3dDevice->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&debugDevice));
@@ -561,7 +561,6 @@ void setupLightForRender()
     light.ConstantAttenuation = 1.0f;
     light.LinearAttenuation = 1;
     light.QuadraticAttenuation = 1;
-
 
     // set up the light
     XMFLOAT4 LightPosition = { 0.0f, 0.0f, -3.0f, 1.0f };
@@ -689,7 +688,7 @@ void Render()
     ImGui::NewFrame();
 
     // The window
-    ImGui::Begin("Poggers");
+    ImGui::Begin("Test");
     ImGui::End();
 
     ImGui::Render();

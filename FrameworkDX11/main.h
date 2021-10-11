@@ -14,6 +14,7 @@
 #include "DrawableGameObject.h"
 #include "structures.h"
 #include "Camera.h"
+#include "Debug.h"
 
 #include "imgui-master/imgui.h"
 #include "imgui-master/imgui_impl_win32.h"
@@ -47,23 +48,16 @@ ID3D11DepthStencilView* g_pDepthStencilView = nullptr;
 ID3D11VertexShader*		g_pVertexShader = nullptr;
 
 ID3D11PixelShader*		g_pPixelShader = nullptr;
-
 ID3D11InputLayout*		g_pVertexLayout = nullptr;
-
 ID3D11Buffer*			g_pConstantBuffer = nullptr;
-
 ID3D11Buffer*			g_pLightConstantBuffer = nullptr;
-
-//XMMATRIX                g_View;
-//XMMATRIX                g_Projection;
 
 int						g_viewWidth;
 int						g_viewHeight;
 
 DrawableGameObject		g_GameObject;
 Camera					g_Camera;
-
-//XMFLOAT4				g_EyePosition(0.0f, 0, -3, 1.0f);
+Debug					g_Debug;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
