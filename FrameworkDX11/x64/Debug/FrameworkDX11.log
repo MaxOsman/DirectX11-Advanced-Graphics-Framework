@@ -1,9 +1,10 @@
 ﻿  main.cpp
-C:\Users\o010617j\Desktop\DirectX11-Advanced-Graphics-Framework-main\FrameworkDX11\main.cpp(338,14): warning C4189: 'io': local variable is initialized but not referenced
-C:\Users\o010617j\Desktop\DirectX11-Advanced-Graphics-Framework-main\FrameworkDX11\main.cpp(437,34): warning C4100: 'height': unreferenced formal parameter
-C:\Users\o010617j\Desktop\DirectX11-Advanced-Graphics-Framework-main\FrameworkDX11\main.cpp(437,23): warning C4100: 'width': unreferenced formal parameter
-C:\Users\o010617j\Desktop\DirectX11-Advanced-Graphics-Framework-main\FrameworkDX11\main.cpp(526,74): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
-C:\Users\o010617j\Desktop\DirectX11-Advanced-Graphics-Framework-main\FrameworkDX11\main.cpp(526,41): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
-C:\Users\o010617j\Desktop\DirectX11-Advanced-Graphics-Framework-main\FrameworkDX11\main.cpp(509,7): warning C4189: 'xPos': local variable is initialized but not referenced
-C:\Users\o010617j\Desktop\DirectX11-Advanced-Graphics-Framework-main\FrameworkDX11\main.cpp(510,7): warning C4189: 'yPos': local variable is initialized but not referenced
-  FrameworkDX11.vcxproj -> C:\Users\o010617j\Desktop\DirectX11-Advanced-Graphics-Framework-main\x64\Debug\FrameworkDX11.exe
+E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\FrameworkDX11\main.cpp(338,14): warning C4189: 'io': local variable is initialized but not referenced
+E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\FrameworkDX11\main.cpp(437,34): warning C4100: 'height': unreferenced formal parameter
+E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\FrameworkDX11\main.cpp(437,23): warning C4100: 'width': unreferenced formal parameter
+E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\FrameworkDX11\main.cpp(525,74): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\FrameworkDX11\main.cpp(525,41): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\FrameworkDX11\main.cpp(508,7): warning C4189: 'xPos': local variable is initialized but not referenced
+E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\FrameworkDX11\main.cpp(509,7): warning C4189: 'yPos': local variable is initialized but not referenced
+  LINK : E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\x64\Debug\FrameworkDX11.exe not found or not built by the last incremental link; performing full link
+  FrameworkDX11.vcxproj -> E:\Uni\_Year 3\Advanced Graphics\DirectX11-Advanced-Graphics-Week-2\x64\Debug\FrameworkDX11.exe

@@ -22,5 +22,6 @@ void Debug::Print(float f)
 {
 	std::ostringstream ss;
 	ss << f;
-	OutputDebugString(ss.str().c_str());
+	OutputDebugStringA(ss.str().c_str());
+	OutputDebugStringA("\n");
 }

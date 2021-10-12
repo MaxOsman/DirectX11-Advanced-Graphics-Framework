@@ -437,7 +437,6 @@ HRESULT	InitMesh()
 HRESULT	InitWorld(int width, int height)
 {
     g_Camera = Camera(WINDOW_HEIGHT, WINDOW_WIDTH, XMFLOAT3(0.0f, 0.0f, -3.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
-    g_Debug.Print(3.141592f);
 
 	return S_OK;
 }
