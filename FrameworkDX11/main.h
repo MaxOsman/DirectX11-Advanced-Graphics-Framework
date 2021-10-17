@@ -12,6 +12,7 @@
 #include <iostream>
 
 #include "DrawableGameObject.h"
+#include "NormalMapping.cpp"
 #include "structures.h"
 #include "Camera.h"
 #include "Debug.h"

@@ -9,14 +9,24 @@
 #include <iostream>
 #include "structures.h"
 
-
 using namespace DirectX;
+
+#define NUM_VERTICES 36
+
+/*struct SimpleVertex
+{
+	XMFLOAT3 Pos;
+	XMFLOAT3 Normal;
+	XMFLOAT2 TexCoord;
+};*/
 
 struct SimpleVertex
 {
 	XMFLOAT3 Pos;
 	XMFLOAT3 Normal;
 	XMFLOAT2 TexCoord;
+	XMFLOAT3 Tangent;
+	XMFLOAT3 BiTangent;
 };
 
 class DrawableGameObject
@@ -37,14 +47,16 @@ public:
 	ID3D11SamplerState**				getTextureSamplerState() { return &m_pSamplerLinear; }
 	ID3D11Buffer*						getMaterialConstantBuffer() { return m_pMaterialConstantBuffer;}
 	void								setPosition(XMFLOAT3 position);
+	void								CalculateModelVectors(SimpleVertex* vertices, int vertexCount);
+	void								CalculateTangentBinormal2(SimpleVertex v0, SimpleVertex v1, SimpleVertex v2, XMFLOAT3& normal, XMFLOAT3& tangent, XMFLOAT3& binormal);
 
 private:
 	
 	XMFLOAT4X4							m_World;
-
 	ID3D11Buffer*						m_pVertexBuffer;
 	ID3D11Buffer*						m_pIndexBuffer;
 	ID3D11ShaderResourceView*			m_pTextureResourceView;
+	ID3D11ShaderResourceView*			m_pNormalTexture;
 	ID3D11SamplerState *				m_pSamplerLinear;
 	MaterialPropertiesConstantBuffer	m_material;
 	ID3D11Buffer*						m_pMaterialConstantBuffer = nullptr;
