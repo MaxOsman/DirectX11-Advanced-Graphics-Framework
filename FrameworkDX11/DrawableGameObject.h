@@ -47,7 +47,7 @@ public:
 	ID3D11SamplerState**				getTextureSamplerState() { return &m_pSamplerLinear; }
 	ID3D11Buffer*						getMaterialConstantBuffer() { return m_pMaterialConstantBuffer;}
 	void								setPosition(XMFLOAT3 position);
-	void								CalculateModelVectors(SimpleVertex* vertices, int vertexCount);
+	void								CalculateModelVectors(SimpleVertex* vertices, WORD* indices, int vertexCount);
 	void								CalculateTangentBinormal2(SimpleVertex v0, SimpleVertex v1, SimpleVertex v2, XMFLOAT3& normal, XMFLOAT3& tangent, XMFLOAT3& binormal);
 
 private:
@@ -62,4 +62,3 @@ private:
 	ID3D11Buffer*						m_pMaterialConstantBuffer = nullptr;
 	XMFLOAT3							m_position;
 };
-

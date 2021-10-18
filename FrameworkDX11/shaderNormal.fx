@@ -18,6 +18,7 @@ cbuffer ConstantBuffer : register( b0 )
 }
 
 Texture2D txDiffuse : register(t0);
+Texture2D txNormal : register(t1);
 SamplerState samLinear : register(s0);
 
 #define MAX_LIGHTS 1
@@ -76,11 +77,20 @@ cbuffer LightProperties : register(b2)
 }; 
 
 //--------------------------------------------------------------------------------------
-struct VS_INPUT
+/*struct VS_INPUT
 {
     float4 Pos : POSITION;
 	float3 Norm : NORMAL;
 	float2 Tex : TEXCOORD0;
+};*/
+
+struct VS_INPUT
+{
+	float4 Pos : POSITION;
+	float3 Norm : NORMAL;
+	float2 Tex : TEXCOORD0;
+	float3 Tan : TANGENT;
+	float3 Binorm : BINORMAL;
 };
 
 struct PS_INPUT
@@ -90,7 +100,6 @@ struct PS_INPUT
 	float3 Norm : NORMAL;
 	float2 Tex : TEXCOORD0;
 };
-
 
 float4 DoDiffuse(Light light, float3 L, float3 N)
 {
@@ -139,7 +148,6 @@ LightingResult DoPointLight(Light light, float3 vertexToEye, float4 vertexPos, f
 
 	float attenuation = DoAttenuation(light, distance);
 	attenuation = 1;
-
 
 	result.Diffuse = DoDiffuse(light, vertexToLight, N) * attenuation;
 	result.Specular = DoSpecular(light, vertexToEye, LightDirectionToVertex, N) * attenuation;
@@ -192,7 +200,6 @@ PS_INPUT VS( VS_INPUT input )
     return output;
 }
 
-
 //--------------------------------------------------------------------------------------
 // Pixel Shader
 //--------------------------------------------------------------------------------------
@@ -213,9 +220,7 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 		texColor = txDiffuse.Sample(samLinear, IN.Tex);
 	}
 
-	float4 finalColor = (emissive + ambient + diffuse + specular) * texColor;
-
-	return finalColor;
+	return (emissive + ambient + diffuse + specular) * texColor;
 }
 
 //--------------------------------------------------------------------------------------
