@@ -688,8 +688,8 @@ void Render()
     ImGui::NewFrame();
 
     // The window
-    ImGui::Begin("Test");
-    ImGui::End();
+    //ImGui::Begin("Test");
+    //ImGui::End();
 
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

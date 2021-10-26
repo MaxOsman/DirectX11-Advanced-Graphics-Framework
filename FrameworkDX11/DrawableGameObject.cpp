@@ -49,46 +49,106 @@ void DrawableGameObject::cleanup()
 
 HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext)
 {
-	const int vertexCount = 24;
+	const int vertexCount = 36;
 
 	// Create vertex buffer
 	SimpleVertex vertices[] =
 	{
-		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
+		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
 		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
 		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 
+		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
 		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
 		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
 		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
 
+		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
 		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
 		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
 		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },
 
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f) },
 		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) , XMFLOAT2(1.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f) },
 		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) , XMFLOAT2(1.0f, 1.0f) },
 		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f) },
 
+		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) },
 		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f) },
 		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 1.0f) },
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) },
 		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 0.0f) },
+		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f) },
+		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) },
+
+		/*{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },		0
+		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },			1
+		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },			2
+		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },			3
+
+		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },		4
+		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },		5
+		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },			6
+		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },		7
+
+		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },		8
+		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },		9
+		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },		10
+		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },			11
+
+		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },			12
+		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },			13
+		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },			14
+		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },			15
+
+		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f) },		16
+		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) , XMFLOAT2(1.0f, 1.0f) },		17
+		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f) },			18
+		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f) },		19
+
+		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f) },			20
+		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 1.0f) },			21
+		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) },			22
+		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 0.0f) },			23*/
 	};
 
 	// Create index buffer
 	WORD indices[] =
 	{
-		3,1,0,
+		0,1,2,
+		3,4,5,
+
+		6,7,8,
+		9,10,11,
+
+		12,13,14,
+		15,16,17,
+
+		18,19,20,
+		21,22,23,
+
+		24,25,26,
+		27,28,29,
+
+		30,31,32,
+		33,34,35
+
+		/*3,1,0,
 		2,1,3,
 
 		6,4,5,
@@ -104,10 +164,10 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 		18,17,19,
 
 		22,20,21,
-		23,20,22
+		23,20,22*/
 	};
 
-	CalculateModelVectors(vertices, indices, vertexCount);
+	CalculateModelVectors(vertices, vertexCount);
 
 	D3D11_BUFFER_DESC bd = {};
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -204,12 +264,8 @@ void DrawableGameObject::draw(ID3D11DeviceContext* pContext)
 	pContext->DrawIndexed(NUM_VERTICES, 0, 0);
 }
 
-// IMPORTANT NOTE!!
-// NOTE!! - this assumes each face is using its own vertices (no shared vertices)
-// so the index file would look like 0,1,2,3,4 and so on
-// it won't work with shared vertices as the tangent / binormal for a vertex is related to a specific face
 // REFERENCE this has largely been modified from "Mathematics for 3D Game Programmming and Computer Graphics" by Eric Lengyel
-void DrawableGameObject::CalculateModelVectors(SimpleVertex* vertices, WORD* indices, int vertexCount)
+void DrawableGameObject::CalculateModelVectors(SimpleVertex* vertices, int vertexCount)
 {
 	int faceCount, i, index;
 	SimpleVertex vertex1, vertex2, vertex3;
@@ -225,69 +281,69 @@ void DrawableGameObject::CalculateModelVectors(SimpleVertex* vertices, WORD* ind
 	for (i = 0; i < faceCount; ++i)
 	{
 		// Get the three vertices for this face from the model.
-		vertex1.Pos.x = vertices[indices[index]].Pos.x;
-		vertex1.Pos.y = vertices[indices[index]].Pos.y;
-		vertex1.Pos.z = vertices[indices[index]].Pos.z;
-		vertex1.TexCoord.x = vertices[indices[index]].TexCoord.x;
-		vertex1.TexCoord.y = vertices[indices[index]].TexCoord.y;
-		vertex1.Normal.x = vertices[indices[index]].Normal.x;
-		vertex1.Normal.y = vertices[indices[index]].Normal.y;
-		vertex1.Normal.z = vertices[indices[index]].Normal.z;
+		vertex1.Pos.x = vertices[index].Pos.x;
+		vertex1.Pos.y = vertices[index].Pos.y;
+		vertex1.Pos.z = vertices[index].Pos.z;
+		vertex1.TexCoord.x = vertices[index].TexCoord.x;
+		vertex1.TexCoord.y = vertices[index].TexCoord.y;
+		vertex1.Normal.x = vertices[index].Normal.x;
+		vertex1.Normal.y = vertices[index].Normal.y;
+		vertex1.Normal.z = vertices[index].Normal.z;
 		index++;
 
-		vertex2.Pos.x = vertices[indices[index]].Pos.x;
-		vertex2.Pos.y = vertices[indices[index]].Pos.y;
-		vertex2.Pos.z = vertices[indices[index]].Pos.z;
-		vertex2.TexCoord.x = vertices[indices[index]].TexCoord.x;
-		vertex2.TexCoord.y = vertices[indices[index]].TexCoord.y;
-		vertex2.Normal.x = vertices[indices[index]].Normal.x;
-		vertex2.Normal.y = vertices[indices[index]].Normal.y;
-		vertex2.Normal.z = vertices[indices[index]].Normal.z;
+		vertex2.Pos.x = vertices[index].Pos.x;
+		vertex2.Pos.y = vertices[index].Pos.y;
+		vertex2.Pos.z = vertices[index].Pos.z;
+		vertex2.TexCoord.x = vertices[index].TexCoord.x;
+		vertex2.TexCoord.y = vertices[index].TexCoord.y;
+		vertex2.Normal.x = vertices[index].Normal.x;
+		vertex2.Normal.y = vertices[index].Normal.y;
+		vertex2.Normal.z = vertices[index].Normal.z;
 		index++;
 
-		vertex3.Pos.x = vertices[indices[index]].Pos.x;
-		vertex3.Pos.y = vertices[indices[index]].Pos.y;
-		vertex3.Pos.z = vertices[indices[index]].Pos.z;
-		vertex3.TexCoord.x = vertices[indices[index]].TexCoord.x;
-		vertex3.TexCoord.y = vertices[indices[index]].TexCoord.y;
-		vertex3.Normal.x = vertices[indices[index]].Normal.x;
-		vertex3.Normal.y = vertices[indices[index]].Normal.y;
-		vertex3.Normal.z = vertices[indices[index]].Normal.z;
+		vertex3.Pos.x = vertices[index].Pos.x;
+		vertex3.Pos.y = vertices[index].Pos.y;
+		vertex3.Pos.z = vertices[index].Pos.z;
+		vertex3.TexCoord.x = vertices[index].TexCoord.x;
+		vertex3.TexCoord.y = vertices[index].TexCoord.y;
+		vertex3.Normal.x = vertices[index].Normal.x;
+		vertex3.Normal.y = vertices[index].Normal.y;
+		vertex3.Normal.z = vertices[index].Normal.z;
 		index++;
 
 		// Calculate the tangent and binormal of that face.
 		CalculateTangentBinormal2(vertex1, vertex2, vertex3, normal, tangent, binormal);
 
 		// Store the normal, tangent, and binormal for this face back in the model structure.
-		vertices[indices[index - 1]].Normal.x = normal.x;
-		vertices[indices[index - 1]].Normal.y = normal.y;
-		vertices[indices[index - 1]].Normal.z = normal.z;
-		vertices[indices[index - 1]].Tangent.x = tangent.x;
-		vertices[indices[index - 1]].Tangent.y = tangent.y;
-		vertices[indices[index - 1]].Tangent.z = tangent.z;
-		vertices[indices[index - 1]].BiTangent.x = binormal.x;
-		vertices[indices[index - 1]].BiTangent.y = binormal.y;
-		vertices[indices[index - 1]].BiTangent.z = binormal.z;
+		vertices[index - 1].Normal.x = normal.x;
+		vertices[index - 1].Normal.y = normal.y;
+		vertices[index - 1].Normal.z = normal.z;
+		vertices[index - 1].Tangent.x = tangent.x;
+		vertices[index - 1].Tangent.y = tangent.y;
+		vertices[index - 1].Tangent.z = tangent.z;
+		vertices[index - 1].BiTangent.x = binormal.x;
+		vertices[index - 1].BiTangent.y = binormal.y;
+		vertices[index - 1].BiTangent.z = binormal.z;
 
-		vertices[indices[index - 2]].Normal.x = normal.x;
-		vertices[indices[index - 2]].Normal.y = normal.y;
-		vertices[indices[index - 2]].Normal.z = normal.z;
-		vertices[indices[index - 2]].Tangent.x = tangent.x;
-		vertices[indices[index - 2]].Tangent.y = tangent.y;
-		vertices[indices[index - 2]].Tangent.z = tangent.z;
-		vertices[indices[index - 2]].BiTangent.x = binormal.x;
-		vertices[indices[index - 2]].BiTangent.y = binormal.y;
-		vertices[indices[index - 2]].BiTangent.z = binormal.z;
+		vertices[index - 2].Normal.x = normal.x;
+		vertices[index - 2].Normal.y = normal.y;
+		vertices[index - 2].Normal.z = normal.z;
+		vertices[index - 2].Tangent.x = tangent.x;
+		vertices[index - 2].Tangent.y = tangent.y;
+		vertices[index - 2].Tangent.z = tangent.z;
+		vertices[index - 2].BiTangent.x = binormal.x;
+		vertices[index - 2].BiTangent.y = binormal.y;
+		vertices[index - 2].BiTangent.z = binormal.z;
 
-		vertices[indices[index - 3]].Normal.x = normal.x;
-		vertices[indices[index - 3]].Normal.y = normal.y;
-		vertices[indices[index - 3]].Normal.z = normal.z;
-		vertices[indices[index - 3]].Tangent.x = tangent.x;
-		vertices[indices[index - 3]].Tangent.y = tangent.y;
-		vertices[indices[index - 3]].Tangent.z = tangent.z;
-		vertices[indices[index - 3]].BiTangent.x = binormal.x;
-		vertices[indices[index - 3]].BiTangent.y = binormal.y;
-		vertices[indices[index - 3]].BiTangent.z = binormal.z;
+		vertices[index - 3].Normal.x = normal.x;
+		vertices[index - 3].Normal.y = normal.y;
+		vertices[index - 3].Normal.z = normal.z;
+		vertices[index - 3].Tangent.x = tangent.x;
+		vertices[index - 3].Tangent.y = tangent.y;
+		vertices[index - 3].Tangent.z = tangent.z;
+		vertices[index - 3].BiTangent.x = binormal.x;
+		vertices[index - 3].BiTangent.y = binormal.y;
+		vertices[index - 3].BiTangent.z = binormal.z;
 	}
 }
 

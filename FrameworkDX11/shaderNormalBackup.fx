@@ -93,7 +93,8 @@ struct PS_INPUT
 	float4 worldPos : POSITION;
 	float3 Norm : NORMAL;
 	float2 Tex : TEXCOORD0;
-	float3x3 Tbn : TBN;
+	float3 Eye : EYE;
+	float3 Light : LIGHT;
 };
 
 float4 DoDiffuse(Light light, float3 L, float3 N)
@@ -102,16 +103,16 @@ float4 DoDiffuse(Light light, float3 L, float3 N)
 	return light.Color * NdotL;
 }
 
-float4 DoSpecular(Light lightObject, float3 vertexToEye, float3 lightDirectionToVertex, float3 Normal)
+float4 DoSpecular(float3 vertexToEye, float3 lightDirectionToVertex, float3 Normal)
 {
-	float4 lightDir = float4(normalize(-lightDirectionToVertex), 1);
+	float4 lightDir = float4(normalize(-lightDirectionToVertex),1);
 	vertexToEye = normalize(vertexToEye);
 
 	float lightIntensity = saturate(dot(Normal, lightDir));
 	float4 specular = float4(0, 0, 0, 0);
 	if (lightIntensity > 0.0f)
 	{
-		float3  reflection = normalize(2 * lightIntensity * Normal - lightDir);
+		float3 reflection = normalize(2 * lightIntensity * Normal - lightDir);
 		specular = pow(saturate(dot(reflection, vertexToEye)), Material.SpecularPower); // 32 = specular power
 	}
 
@@ -129,43 +130,43 @@ struct LightingResult
 	float4 Specular;
 };
 
-LightingResult DoPointLight(Light light, float3 vertexToEye, float4 vertexPos, float3 N)
+LightingResult DoPointLight(Light light, float3 vertexToEye, float4 vertexPos, float3 N, float3 L)
 {
 	LightingResult result;
 
-	float3 LightDirectionToVertex = (vertexPos - light.Position).xyz;
-	float distance = length(LightDirectionToVertex);
-	LightDirectionToVertex = LightDirectionToVertex / distance;
+	//float3 LightDirectionToVertex = (vertexPos - light.Position).xyz;
+	float distance = length((vertexPos - light.Position).xyz);
+	//LightDirectionToVertex = LightDirectionToVertex  / distance;
 
-	float3 vertexToLight = (light.Position - vertexPos).xyz;
+	/*float3 vertexToLight = (light.Position - vertexPos).xyz;
 	distance = length(vertexToLight);
-	vertexToLight = vertexToLight / distance;
+	vertexToLight = vertexToLight / distance;*/
 
 	float attenuation = DoAttenuation(light, distance);
 	attenuation = 1;
 
-	result.Diffuse = DoDiffuse(light, vertexToLight, N) * attenuation;
-	result.Specular = DoSpecular(light, vertexToEye, LightDirectionToVertex, N) * attenuation;
+	result.Diffuse = DoDiffuse(light, L, N) * attenuation;
+	result.Specular = DoSpecular(vertexToEye, L * -1.0f, N) * attenuation;
 
 	return result;
 }
 
-LightingResult ComputeLighting(float4 vertexPos, float3 N)
+LightingResult ComputeLighting(float4 vertexPos, float3 N, float3 E, float3 L)
 {
-	float3 vertexToEye = normalize(EyePosition - vertexPos).xyz;
+	//float3 vertexToEye = normalize(EyePosition - vertexPos).xyz;
 
-	LightingResult totalResult = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+	LightingResult totalResult = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 } };
 
 	[unroll]
 	for (int i = 0; i < MAX_LIGHTS; ++i)
 	{
-		LightingResult result = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+		LightingResult result = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 } };
 
-		if (!Lights[i].Enabled)
+		if (!Lights[i].Enabled) 
 			continue;
-
-		result = DoPointLight(Lights[i], vertexToEye, vertexPos, N);
-
+		
+		result = DoPointLight(Lights[i], E, vertexPos, N, L);
+		
 		totalResult.Diffuse += result.Diffuse;
 		totalResult.Specular += result.Specular;
 	}
@@ -189,16 +190,18 @@ PS_INPUT VS( VS_INPUT input )
 
 	output.Tex = input.Tex;
 
-	// multiply the normal by the world transform (to go from model space to world space)
-	output.Norm = mul(float4(input.Norm, 1), World).xyz;
-
 	// Code based on week 2 lecture slides
-	float3 T = mul(float4(input.Tan, 1), World).xyz;
-	float3 B = mul(float4(input.Binorm, 1), World).xyz;
-	output.Tbn = float3x3(T, B, output.Norm);
+	float3 T = normalize(mul(input.Tan, World));
+	float3 B = normalize(mul(input.Binorm, World));
+	float3 N = normalize(mul(input.Norm, World));
+	// multiply the normal by the world transform (to go from model space to world space)
+	output.Norm = N;
 
-	//output.Binorm = input.Binorm;
-	//output.Tan = input.Tan;
+	float3x3 TBN = float3x3(T, B, N);
+	TBN = transpose(TBN);
+
+	output.Eye = normalize(mul( EyePosition.xyz - output.worldPos.xyz, TBN ));
+	output.Light = normalize(mul( Lights[0].Position.xyz - output.worldPos.xyz, TBN ));
     
     return output;
 }
@@ -210,6 +213,7 @@ PS_INPUT VS( VS_INPUT input )
 float4 PS(PS_INPUT IN) : SV_TARGET
 {
 	float3 texNormal = { 0, 0, 1 };
+
 	if (Material.UseTexture)
 	{
 		texNormal = txNormal.Sample(samLinear, IN.Tex);
@@ -217,7 +221,7 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 		texNormal = normalize(texNormal);
 	}
 
-	LightingResult lit = ComputeLighting(IN.worldPos, normalize(mul(texNormal, IN.Tbn)));
+	LightingResult lit = ComputeLighting(IN.worldPos, texNormal, IN.Eye, IN.Light);
 
 	float4 emissive = Material.Emissive;
 	float4 ambient = Material.Ambient * GlobalAmbient;
@@ -225,6 +229,7 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float4 specular = Material.Specular * lit.Specular;
 
 	float4 texColor = { 1, 1, 1, 1 };
+
 	if (Material.UseTexture)
 	{
 		texColor = txDiffuse.Sample(samLinear, IN.Tex);
