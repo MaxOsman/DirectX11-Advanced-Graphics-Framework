@@ -19,6 +19,7 @@ cbuffer ConstantBuffer : register( b0 )
 
 Texture2D txDiffuse : register(t0);
 Texture2D txNormal : register(t1);
+Texture2D txParallax : register(t2);
 SamplerState samLinear : register(s0);
 
 #define MAX_LIGHTS 1
@@ -94,6 +95,8 @@ struct PS_INPUT
 	float3 Norm : NORMAL;
 	float2 Tex : TEXCOORD0;
 	float3x3 Tbn : TBN;
+	float3 eyePosTS : POSITION2;
+	float3 posTS : POSITION3;
 };
 
 float4 DoDiffuse(Light light, float3 L, float3 N)
@@ -111,7 +114,7 @@ float4 DoSpecular(Light lightObject, float3 vertexToEye, float3 lightDirectionTo
 	float4 specular = float4(0, 0, 0, 0);
 	if (lightIntensity > 0.0f)
 	{
-		float3  reflection = normalize(2 * lightIntensity * Normal - lightDir);
+		float3 reflection = normalize(2 * lightIntensity * Normal - lightDir);
 		specular = pow(saturate(dot(reflection, vertexToEye)), Material.SpecularPower); // 32 = specular power
 	}
 
@@ -154,12 +157,12 @@ LightingResult ComputeLighting(float4 vertexPos, float3 N)
 {
 	float3 vertexToEye = normalize(EyePosition - vertexPos).xyz;
 
-	LightingResult totalResult = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+	LightingResult totalResult = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 } };
 
 	[unroll]
 	for (int i = 0; i < MAX_LIGHTS; ++i)
 	{
-		LightingResult result = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+		LightingResult result = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 } };
 
 		if (!Lights[i].Enabled)
 			continue;
@@ -192,10 +195,16 @@ PS_INPUT VS( VS_INPUT input )
 	// multiply the normal by the world transform (to go from model space to world space)
 	output.Norm = mul(float4(input.Norm, 1), World).xyz;
 
-	// Code based on week 2 lecture slides
+	// Week 2 lecture slides
 	float3 T = mul(float4(input.Tan, 1), World).xyz;
 	float3 B = mul(float4(input.Binorm, 1), World).xyz;
-	output.Tbn = float3x3(T, B, output.Norm);
+	float3x3 TBN = float3x3(T, B, output.Norm);
+	output.Tbn = TBN;
+
+	// Week 3 lecture slides
+	TBN = transpose(TBN);
+	output.eyePosTS = normalize(mul(EyePosition.xyz, TBN));
+	output.posTS = normalize(mul(output.worldPos.xyz, TBN));
 
 	//output.Binorm = input.Binorm;
 	//output.Tan = input.Tan;
@@ -210,8 +219,17 @@ PS_INPUT VS( VS_INPUT input )
 float4 PS(PS_INPUT IN) : SV_TARGET
 {
 	float3 texNormal = { 0, 0, 1 };
+	float2 texCoords = IN.Tex;
 	if (Material.UseTexture)
 	{
+		float2 p = { 0, 0 };
+		float3x3 TBNINV = transpose(IN.Tbn);
+		float3 eyePosTS = normalize(mul(EyePosition.xyz, TBNINV));
+		float3 posTS = normalize(mul(IN.worldPos.xyz, TBNINV));
+		float3 viewDir = normalize(eyePosTS - posTS);
+		float height = txParallax.Sample(samLinear, IN.Tex).x;
+		texCoords = IN.Tex - float2( viewDir.xy / viewDir.z * (height * 0.1f) );
+
 		texNormal = txNormal.Sample(samLinear, IN.Tex);
 		texNormal = mul(texNormal, 2) - 1;
 		texNormal = normalize(texNormal);
@@ -227,7 +245,7 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float4 texColor = { 1, 1, 1, 1 };
 	if (Material.UseTexture)
 	{
-		texColor = txDiffuse.Sample(samLinear, IN.Tex);
+		texColor = txDiffuse.Sample(samLinear, texCoords);
 	}
 
 	return (emissive + ambient + diffuse + specular) * texColor;
