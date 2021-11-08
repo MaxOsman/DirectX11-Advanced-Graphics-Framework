@@ -205,9 +205,6 @@ PS_INPUT VS( VS_INPUT input )
 	TBN = transpose(TBN);
 	output.eyePosTS = normalize(mul(EyePosition.xyz, TBN));
 	output.posTS = normalize(mul(output.worldPos.xyz, TBN));
-
-	//output.Binorm = input.Binorm;
-	//output.Tan = input.Tan;
     
     return output;
 }
@@ -222,11 +219,10 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float2 texCoords = IN.Tex;
 	if (Material.UseTexture)
 	{
-		float2 p = { 0, 0 };
 		float3x3 TBNINV = transpose(IN.Tbn);
 		float3 eyePosTS = normalize(mul(EyePosition.xyz, TBNINV));
 		float3 posTS = normalize(mul(IN.worldPos.xyz, TBNINV));
-		float3 viewDir = normalize(eyePosTS - posTS);
+		float3 viewDir = normalize(IN.eyePosTS - IN.posTS);
 		float height = txParallax.Sample(samLinear, IN.Tex).x;
 		texCoords = IN.Tex - float2( viewDir.xy / viewDir.z * (height * 0.1f) );
 
