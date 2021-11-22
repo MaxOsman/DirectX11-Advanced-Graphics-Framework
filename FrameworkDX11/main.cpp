@@ -302,6 +302,31 @@ HRESULT InitDevice()
 
     g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
 
+    // Week 6 - Render to texture
+    D3D11_TEXTURE2D_DESC textureDesc;
+    ZeroMemory(&textureDesc, sizeof(textureDesc));
+
+    textureDesc.Width = width;
+    textureDesc.Height = height;
+    textureDesc.MipLevels = 1;
+    textureDesc.ArraySize = 1;
+    textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    textureDesc.SampleDesc.Count = 1;
+    textureDesc.Usage = D3D11_USAGE_DEFAULT;
+    textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    textureDesc.CPUAccessFlags = 0;
+    textureDesc.MiscFlags = 0;
+
+    g_pd3dDevice->CreateTexture2D(&textureDesc, NULL, &g_pRTTRenderTargetTexture);
+    if (FAILED(hr))
+        return hr;
+
+    D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTRenderTargetView, g_pRTTStencilView);
+
     // Setup the viewport
     D3D11_VIEWPORT vp;
     vp.Width = (FLOAT)width;
@@ -471,6 +496,14 @@ void CleanupDevice()
     if( g_pSwapChain ) g_pSwapChain->Release();
     if( g_pImmediateContext1 ) g_pImmediateContext1->Release();
     if( g_pImmediateContext ) g_pImmediateContext->Release();
+    if (g_pRTTRenderTargetTexture) g_pRTTRenderTargetTexture->Release();
+    if (g_pRTTRenderTargetView) g_pRTTRenderTargetView->Release();
+    if (g_pRTTShaderResourceView) g_pRTTShaderResourceView->Release();
+    if (g_pRTTStencilView) g_pRTTStencilView->Release();
+    if (g_pScreenQuadVB) g_pScreenQuadVB->Release();
+    if (g_pQuadLayout) g_pQuadLayout->Release();
+    if (g_pQuadVS) g_pQuadVS->Release();
+    if (g_pQuadPS) g_pQuadPS->Release();
 
     ID3D11Debug* debugDevice = nullptr;
     g_pd3dDevice->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&debugDevice));

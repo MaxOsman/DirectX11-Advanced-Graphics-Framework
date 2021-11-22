@@ -32,32 +32,42 @@ typedef vector<DrawableGameObject*> vecDrawables;
 //--------------------------------------------------------------------------------------
 // Global Variables
 //--------------------------------------------------------------------------------------
-HINSTANCE               g_hInst = nullptr;
-HWND                    g_hWnd = nullptr;
-D3D_DRIVER_TYPE         g_driverType = D3D_DRIVER_TYPE_NULL;
-D3D_FEATURE_LEVEL       g_featureLevel = D3D_FEATURE_LEVEL_11_0;
-ID3D11Device*			g_pd3dDevice = nullptr;
-ID3D11Device1*			g_pd3dDevice1 = nullptr;
-ID3D11DeviceContext*	g_pImmediateContext = nullptr;
-ID3D11DeviceContext1*	g_pImmediateContext1 = nullptr;
-IDXGISwapChain*			g_pSwapChain = nullptr;
-IDXGISwapChain1*		g_pSwapChain1 = nullptr;
-ID3D11RenderTargetView* g_pRenderTargetView = nullptr;
-ID3D11Texture2D*		g_pDepthStencil = nullptr;
-ID3D11DepthStencilView* g_pDepthStencilView = nullptr;
-ID3D11VertexShader*		g_pVertexShader = nullptr;
+HINSTANCE					g_hInst = nullptr;
+HWND						g_hWnd = nullptr;
+D3D_DRIVER_TYPE				g_driverType = D3D_DRIVER_TYPE_NULL;
+D3D_FEATURE_LEVEL			g_featureLevel = D3D_FEATURE_LEVEL_11_0;
+ID3D11Device*				g_pd3dDevice = nullptr;
+ID3D11Device1*				g_pd3dDevice1 = nullptr;
+ID3D11DeviceContext*		g_pImmediateContext = nullptr;
+ID3D11DeviceContext1*		g_pImmediateContext1 = nullptr;
+IDXGISwapChain*				g_pSwapChain = nullptr;
+IDXGISwapChain1*			g_pSwapChain1 = nullptr;
+ID3D11RenderTargetView*		g_pRenderTargetView = nullptr;
+ID3D11Texture2D*			g_pDepthStencil = nullptr;
+ID3D11DepthStencilView*		g_pDepthStencilView = nullptr;
+ID3D11VertexShader*			g_pVertexShader = nullptr;
 
-ID3D11PixelShader*		g_pPixelShader = nullptr;
-ID3D11InputLayout*		g_pVertexLayout = nullptr;
-ID3D11Buffer*			g_pConstantBuffer = nullptr;
-ID3D11Buffer*			g_pLightConstantBuffer = nullptr;
+ID3D11Texture2D*			g_pRTTRenderTargetTexture = nullptr;
+ID3D11RenderTargetView*		g_pRTTRenderTargetView = nullptr;
+ID3D11ShaderResourceView*	g_pRTTShaderResourceView = nullptr;
+ID3D11DepthStencilView*		g_pRTTStencilView = nullptr;
 
-int						g_viewWidth;
-int						g_viewHeight;
+ID3D11PixelShader*			g_pPixelShader = nullptr;
+ID3D11InputLayout*			g_pVertexLayout = nullptr;
+ID3D11Buffer*				g_pConstantBuffer = nullptr;
+ID3D11Buffer*				g_pLightConstantBuffer = nullptr;
 
-DrawableGameObject		g_GameObject;
-Camera					g_Camera;
-Debug					g_Debug;
+ID3D11Buffer*				g_pScreenQuadVB = nullptr;
+ID3D11InputLayout*			g_pQuadLayout = nullptr;
+ID3D11VertexShader*			g_pQuadVS = nullptr;
+ID3D11PixelShader*			g_pQuadPS = nullptr;
+
+int							g_viewWidth;
+int							g_viewHeight;
+
+DrawableGameObject			g_GameObject;
+Camera						g_Camera;
+Debug						g_Debug;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations

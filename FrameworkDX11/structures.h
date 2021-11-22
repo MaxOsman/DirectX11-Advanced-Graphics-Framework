@@ -15,6 +15,12 @@ struct ConstantBuffer
 	XMFLOAT4 vOutputColor;
 };
 
+struct SCREEN_VERTEX
+{
+	XMFLOAT4 pos;
+	XMFLOAT2 tex;
+};
+
 struct _Material
 {
 	_Material()

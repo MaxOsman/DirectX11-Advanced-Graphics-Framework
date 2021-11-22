@@ -95,8 +95,8 @@ struct PS_INPUT
 	float3 Norm : NORMAL;
 	float2 Tex : TEXCOORD0;
 	float3x3 Tbn : TBN;
-	float3 eyePosTS : POSITION2;
-	float3 posTS : POSITION3;
+	/*float3 eyePosTS : POSITION2;
+	float3 posTS : POSITION3;*/
 };
 
 float4 DoDiffuse(Light light, float3 L, float3 N)
@@ -202,9 +202,9 @@ PS_INPUT VS( VS_INPUT input )
 	output.Tbn = TBN;
 
 	// Week 3 lecture slides
-	TBN = transpose(TBN);
+	/*TBN = transpose(TBN);
 	output.eyePosTS = normalize(mul(EyePosition.xyz, TBN));
-	output.posTS = normalize(mul(output.worldPos.xyz, TBN));
+	output.posTS = normalize(mul(output.worldPos.xyz, TBN));*/
     
     return output;
 }
@@ -219,12 +219,12 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	float2 texCoords = IN.Tex;
 	if (Material.UseTexture)
 	{
-		float3x3 TBNINV = transpose(IN.Tbn);
+		/*float3x3 TBNINV = transpose(IN.Tbn);
 		float3 eyePosTS = normalize(mul(EyePosition.xyz, TBNINV));
 		float3 posTS = normalize(mul(IN.worldPos.xyz, TBNINV));
 		float3 viewDir = normalize(IN.eyePosTS - IN.posTS);
 		float height = txParallax.Sample(samLinear, IN.Tex).x;
-		texCoords = IN.Tex - float2( viewDir.xy / viewDir.z * (height * 0.1f) );
+		texCoords = IN.Tex - float2( viewDir.xy / viewDir.z * (height * 0.1f) );*/
 
 		texNormal = txNormal.Sample(samLinear, IN.Tex);
 		texNormal = mul(texNormal, 2) - 1;
