@@ -43,7 +43,7 @@ ID3D11DeviceContext1*		g_pImmediateContext1 = nullptr;
 IDXGISwapChain*				g_pSwapChain = nullptr;
 IDXGISwapChain1*			g_pSwapChain1 = nullptr;
 ID3D11RenderTargetView*		g_pRenderTargetView = nullptr;
-ID3D11Texture2D*			g_pDepthStencil = nullptr;
+ID3D11Texture2D*			g_pDepthStencilTexture = nullptr;
 ID3D11DepthStencilView*		g_pDepthStencilView = nullptr;
 ID3D11VertexShader*			g_pVertexShader = nullptr;
 

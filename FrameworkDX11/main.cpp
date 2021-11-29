@@ -274,6 +274,39 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
+    // Week 6 - Render to texture
+    // Code based on www.youtube.com/watch?v=2ThW4Gz6oYM
+    D3D11_TEXTURE2D_DESC textureDesc = {};
+    textureDesc.Width = width;
+    textureDesc.Height = height;
+    textureDesc.MipLevels = 1;
+    textureDesc.ArraySize = 1;
+    textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    textureDesc.SampleDesc.Count = 1;
+    textureDesc.Usage = D3D11_USAGE_DEFAULT;
+    textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    textureDesc.CPUAccessFlags = 0;
+    textureDesc.MiscFlags = 0;
+
+    g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pRTTRenderTargetTexture);
+    if (FAILED(hr))
+        return hr;
+
+    D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
+    renderTargetViewDesc.Format = textureDesc.Format;
+    renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    hr = g_pd3dDevice->CreateRenderTargetView( g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView );
+    if (FAILED(hr))
+        return hr;
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
+    shaderResourceViewDesc.Format = textureDesc.Format;
+    shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    shaderResourceViewDesc.Texture2D.MipLevels = 1;
+    hr = g_pd3dDevice->CreateShaderResourceView( g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView );
+    if (FAILED(hr))
+        return hr;
+
     // Create depth stencil texture
     D3D11_TEXTURE2D_DESC descDepth = {};
     descDepth.Width = width;
@@ -287,8 +320,8 @@ HRESULT InitDevice()
     descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     descDepth.CPUAccessFlags = 0;
     descDepth.MiscFlags = 0;
-    hr = g_pd3dDevice->CreateTexture2D( &descDepth, nullptr, &g_pDepthStencil );
-    if( FAILED( hr ) )
+    hr = g_pd3dDevice->CreateTexture2D(&descDepth, nullptr, &g_pDepthStencilTexture);
+    if (FAILED(hr))
         return hr;
 
     // Create the depth stencil view
@@ -296,36 +329,13 @@ HRESULT InitDevice()
     descDSV.Format = descDepth.Format;
     descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     descDSV.Texture2D.MipSlice = 0;
-    hr = g_pd3dDevice->CreateDepthStencilView( g_pDepthStencil, &descDSV, &g_pDepthStencilView );
-    if( FAILED( hr ) )
-        return hr;
-
-    g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
-
-    // Week 6 - Render to texture
-    D3D11_TEXTURE2D_DESC textureDesc;
-    ZeroMemory(&textureDesc, sizeof(textureDesc));
-
-    textureDesc.Width = width;
-    textureDesc.Height = height;
-    textureDesc.MipLevels = 1;
-    textureDesc.ArraySize = 1;
-    textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-    textureDesc.SampleDesc.Count = 1;
-    textureDesc.Usage = D3D11_USAGE_DEFAULT;
-    textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-    textureDesc.CPUAccessFlags = 0;
-    textureDesc.MiscFlags = 0;
-
-    g_pd3dDevice->CreateTexture2D(&textureDesc, NULL, &g_pRTTRenderTargetTexture);
+    hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencilTexture, &descDSV, &g_pDepthStencilView);
     if (FAILED(hr))
         return hr;
 
-    D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
+    //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
 
-    D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
-
-    g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTRenderTargetView, g_pRTTStencilView);
+    g_pImmediateContext->OMSetRenderTargets( 1, &g_pRTTRenderTargetView, g_pDepthStencilView);
 
     // Setup the viewport
     D3D11_VIEWPORT vp;
@@ -489,7 +499,7 @@ void CleanupDevice()
     if( g_pConstantBuffer ) g_pConstantBuffer->Release();
     if( g_pVertexShader ) g_pVertexShader->Release();
     if( g_pPixelShader ) g_pPixelShader->Release();
-    if( g_pDepthStencil ) g_pDepthStencil->Release();
+    if( g_pDepthStencilTexture) g_pDepthStencilTexture->Release();
     if( g_pDepthStencilView ) g_pDepthStencilView->Release();
     if( g_pRenderTargetView ) g_pRenderTargetView->Release();
     if( g_pSwapChain1 ) g_pSwapChain1->Release();
@@ -682,6 +692,10 @@ void Render()
 
     // Clear the depth buffer to 1.0 (max depth)
     g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    // RTT
+    g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::MistyRose);
+    //g_pImmediateContext->ClearDepthStencilView(g_pRTTStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     // Update the cube transform, material etc. 
     g_GameObject.update(t, g_pImmediateContext);

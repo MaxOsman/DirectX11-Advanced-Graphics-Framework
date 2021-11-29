@@ -3,6 +3,7 @@
   <ItemGroup>
     <FxCompile Include="shader.fx" />
     <FxCompile Include="shaderNormal.fx" />
+    <FxCompile Include="shaderNormalRTT.fx" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
