@@ -270,12 +270,10 @@ HRESULT InitDevice()
         return hr;
 
     hr = g_pd3dDevice->CreateRenderTargetView( pBackBuffer, nullptr, &g_pRenderTargetView );
-    pBackBuffer->Release();
     if( FAILED( hr ) )
         return hr;
 
     // Week 6 - Render to texture
-    // Code based on www.youtube.com/watch?v=2ThW4Gz6oYM
     D3D11_TEXTURE2D_DESC textureDesc = {};
     textureDesc.Width = width;
     textureDesc.Height = height;
@@ -295,7 +293,7 @@ HRESULT InitDevice()
     D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
     renderTargetViewDesc.Format = textureDesc.Format;
     renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    hr = g_pd3dDevice->CreateRenderTargetView( g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView );
+    hr = g_pd3dDevice->CreateRenderTargetView(g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView );
     if (FAILED(hr))
         return hr;
 
@@ -303,7 +301,35 @@ HRESULT InitDevice()
     shaderResourceViewDesc.Format = textureDesc.Format;
     shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
     shaderResourceViewDesc.Texture2D.MipLevels = 1;
-    hr = g_pd3dDevice->CreateShaderResourceView( g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView );
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView );
+    if (FAILED(hr))
+        return hr;
+
+
+
+    // Create depth stencil texture
+    D3D11_TEXTURE2D_DESC RTTdescDepth = {};
+    RTTdescDepth.Width = width;
+    RTTdescDepth.Height = height;
+    RTTdescDepth.MipLevels = 1;
+    RTTdescDepth.ArraySize = 1;
+    RTTdescDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    RTTdescDepth.SampleDesc.Count = 1;
+    RTTdescDepth.SampleDesc.Quality = 0;
+    RTTdescDepth.Usage = D3D11_USAGE_DEFAULT;
+    RTTdescDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    RTTdescDepth.CPUAccessFlags = 0;
+    RTTdescDepth.MiscFlags = 0;
+    g_pd3dDevice->CreateTexture2D(&RTTdescDepth, nullptr, &g_pDepthStencilTexture);
+    if (FAILED(hr))
+        return hr;
+
+
+    D3D11_DEPTH_STENCIL_VIEW_DESC RTTdescDSV = {};
+    RTTdescDSV.Format = RTTdescDepth.Format;
+    RTTdescDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    RTTdescDSV.Texture2D.MipSlice = 0;
+    hr = g_pd3dDevice->CreateDepthStencilView(g_pRTTDepthStencilTexture, &RTTdescDSV, &g_pRTTStencilView);
     if (FAILED(hr))
         return hr;
 
@@ -333,9 +359,9 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
-    //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
+    g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
 
-    g_pImmediateContext->OMSetRenderTargets( 1, &g_pRTTRenderTargetView, g_pDepthStencilView);
+    //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRTTRenderTargetView, g_pDepthStencilView);
 
     // Setup the viewport
     D3D11_VIEWPORT vp;
@@ -374,6 +400,8 @@ HRESULT InitDevice()
     ImGui_ImplWin32_Init(g_hWnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pImmediateContext);
     ImGui::StyleColorsClassic();
+
+    pBackBuffer->Release();
 
     return S_OK;
 }
@@ -693,9 +721,12 @@ void Render()
     // Clear the depth buffer to 1.0 (max depth)
     g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-    // RTT
-    g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::MistyRose);
-    //g_pImmediateContext->ClearDepthStencilView(g_pRTTStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRTTRenderTargetView, );
+    //// RTT
+    //g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::MistyRose);
+    ////g_pImmediateContext->ClearDepthStencilView(g_pRTTStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
 
     // Update the cube transform, material etc. 
     g_GameObject.update(t, g_pImmediateContext);
@@ -743,4 +774,21 @@ void Render()
 
     // Present our back buffer to our front buffer
     g_pSwapChain->Present(0, 0);
+
+
+    //RENDER TO TEX
+
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTRenderTargetView, g_pRTTStencilView);
+
+    g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::MistyRose);
+
+    // Clear the depth buffer to 1.0 (max depth)
+    g_pImmediateContext->ClearDepthStencilView(g_pRTTStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+
+    g_GameObject.draw(g_pImmediateContext);
+
+    g_pSwapChain->Present(0, 0);
+
+    
 }

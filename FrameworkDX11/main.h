@@ -48,6 +48,7 @@ ID3D11DepthStencilView*		g_pDepthStencilView = nullptr;
 ID3D11VertexShader*			g_pVertexShader = nullptr;
 
 ID3D11Texture2D*			g_pRTTRenderTargetTexture = nullptr;
+ID3D11Texture2D*			g_pRTTDepthStencilTexture = nullptr;
 ID3D11RenderTargetView*		g_pRTTRenderTargetView = nullptr;
 ID3D11ShaderResourceView*	g_pRTTShaderResourceView = nullptr;
 ID3D11DepthStencilView*		g_pRTTStencilView = nullptr;
