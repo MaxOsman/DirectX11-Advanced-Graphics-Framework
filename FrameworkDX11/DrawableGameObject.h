@@ -42,6 +42,7 @@ public:
 	void								setPosition(XMFLOAT3 position);
 	void								CalculateModelVectors(SimpleVertex* vertices, int vertexCount);
 	void								CalculateTangentBinormalLH(SimpleVertex v0, SimpleVertex v1, SimpleVertex v2, XMFLOAT3& normal, XMFLOAT3& tangent, XMFLOAT3& binormal);
+	ID3D11SamplerState*					getSampler() { return m_pSamplerLinear; }
 
 private:
 	

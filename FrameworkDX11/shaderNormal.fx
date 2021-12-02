@@ -88,6 +88,12 @@ struct VS_INPUT
 	float3 Binorm : BINORMAL;
 };
 
+struct RTT_VS_INPUT
+{
+	float4 Pos : POSITION;
+	float2 Tex : TEXCOORD0;
+};
+
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
@@ -97,6 +103,12 @@ struct PS_INPUT
 	float3x3 Tbn : TBN;
 	/*float3 eyePosTS : POSITION2;
 	float3 posTS : POSITION3;*/
+};
+
+struct RTT_PS_INPUT
+{
+	float4 Pos : SV_POSITION;
+	float2 Tex : TEXCOORD0;
 };
 
 float4 DoDiffuse(Light light, float3 L, float3 N)
@@ -209,6 +221,16 @@ PS_INPUT VS( VS_INPUT input )
     return output;
 }
 
+RTT_PS_INPUT RTT_VS( RTT_VS_INPUT input )
+{
+	RTT_PS_INPUT output = (RTT_PS_INPUT)0;
+
+	output.Pos = input.Pos;
+	output.Tex = input.Tex;
+
+	return output;
+}
+
 //--------------------------------------------------------------------------------------
 // Pixel Shader
 //--------------------------------------------------------------------------------------
@@ -245,6 +267,13 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	}
 
 	return (emissive + ambient + diffuse + specular) * texColor;
+}
+
+float4 RTT_PS(RTT_PS_INPUT IN) : SV_TARGET
+{
+	float4 texColor = txDiffuse.Sample(samLinear, IN.Tex);
+
+	return texColor;
 }
 
 //--------------------------------------------------------------------------------------

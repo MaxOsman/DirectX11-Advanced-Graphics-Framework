@@ -180,17 +180,14 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 
+	// Create vertex buffer
 	D3D11_SUBRESOURCE_DATA InitData = {};
 	InitData.pSysMem = vertices;
 	HRESULT hr = pd3dDevice->CreateBuffer(&bd, &InitData, &m_pVertexBuffer);
 	if (FAILED(hr))
 		return hr;
 
-	// Set vertex buffer
-	UINT stride = sizeof(SimpleVertex);
-	UINT offset = 0;
-	pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
-
+	// Create index buffer
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(WORD) * NUM_VERTICES;        // 36 vertices needed for 12 triangles in a triangle list
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -199,9 +196,6 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 	hr = pd3dDevice->CreateBuffer(&bd, &InitData, &m_pIndexBuffer);
 	if (FAILED(hr))
 		return hr;
-
-	// Set index buffer
-	pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 
 	// Set primitive topology
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -263,6 +257,16 @@ void DrawableGameObject::update(float t, ID3D11DeviceContext* pContext)
 
 void DrawableGameObject::draw(ID3D11DeviceContext* pContext)
 {
+	// Set vertex buffer
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+
+	// Set index buffer
+	pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+
+	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 	pContext->PSSetShaderResources(0, 1, &m_pTextureResourceView);
 	pContext->PSSetShaderResources(1, 1, &m_pNormalTexture);
 	pContext->PSSetShaderResources(2, 1, &m_pParallaxTexture);

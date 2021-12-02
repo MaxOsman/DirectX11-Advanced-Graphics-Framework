@@ -270,10 +270,12 @@ HRESULT InitDevice()
         return hr;
 
     hr = g_pd3dDevice->CreateRenderTargetView( pBackBuffer, nullptr, &g_pRenderTargetView );
+    pBackBuffer->Release();
     if( FAILED( hr ) )
         return hr;
 
     // Week 6 - Render to texture
+    // Code based on www.braynzarsoft.net/viewtutorial/q16390-35-render-to-texture
     D3D11_TEXTURE2D_DESC textureDesc = {};
     textureDesc.Width = width;
     textureDesc.Height = height;
@@ -285,7 +287,6 @@ HRESULT InitDevice()
     textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
     textureDesc.CPUAccessFlags = 0;
     textureDesc.MiscFlags = 0;
-
     g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pRTTRenderTargetTexture);
     if (FAILED(hr))
         return hr;
@@ -293,43 +294,17 @@ HRESULT InitDevice()
     D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
     renderTargetViewDesc.Format = textureDesc.Format;
     renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    hr = g_pd3dDevice->CreateRenderTargetView(g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView );
+    renderTargetViewDesc.Texture2D.MipSlice = 0;
+    hr = g_pd3dDevice->CreateRenderTargetView( g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView );
     if (FAILED(hr))
         return hr;
 
     D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
     shaderResourceViewDesc.Format = textureDesc.Format;
     shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
     shaderResourceViewDesc.Texture2D.MipLevels = 1;
-    hr = g_pd3dDevice->CreateShaderResourceView(g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView );
-    if (FAILED(hr))
-        return hr;
-
-
-
-    // Create depth stencil texture
-    D3D11_TEXTURE2D_DESC RTTdescDepth = {};
-    RTTdescDepth.Width = width;
-    RTTdescDepth.Height = height;
-    RTTdescDepth.MipLevels = 1;
-    RTTdescDepth.ArraySize = 1;
-    RTTdescDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    RTTdescDepth.SampleDesc.Count = 1;
-    RTTdescDepth.SampleDesc.Quality = 0;
-    RTTdescDepth.Usage = D3D11_USAGE_DEFAULT;
-    RTTdescDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    RTTdescDepth.CPUAccessFlags = 0;
-    RTTdescDepth.MiscFlags = 0;
-    g_pd3dDevice->CreateTexture2D(&RTTdescDepth, nullptr, &g_pDepthStencilTexture);
-    if (FAILED(hr))
-        return hr;
-
-
-    D3D11_DEPTH_STENCIL_VIEW_DESC RTTdescDSV = {};
-    RTTdescDSV.Format = RTTdescDepth.Format;
-    RTTdescDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-    RTTdescDSV.Texture2D.MipSlice = 0;
-    hr = g_pd3dDevice->CreateDepthStencilView(g_pRTTDepthStencilTexture, &RTTdescDSV, &g_pRTTStencilView);
+    hr = g_pd3dDevice->CreateShaderResourceView( g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView );
     if (FAILED(hr))
         return hr;
 
@@ -359,7 +334,7 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
-    g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
+    //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
 
     //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRTTRenderTargetView, g_pDepthStencilView);
 
@@ -401,8 +376,6 @@ HRESULT InitDevice()
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pImmediateContext);
     ImGui::StyleColorsClassic();
 
-    pBackBuffer->Release();
-
     return S_OK;
 }
 
@@ -416,11 +389,9 @@ HRESULT	InitMesh()
 	HRESULT hr = CompileShaderFromFile(L"shaderNormal.fx", "VS", "vs_4_0", &pVSBlob);
 	if (FAILED(hr))
 	{
-		MessageBox(nullptr,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
 		return hr;
 	}
-
 	// Create the vertex shader
 	hr = g_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &g_pVertexShader);
 	if (FAILED(hr))
@@ -428,6 +399,22 @@ HRESULT	InitMesh()
 		pVSBlob->Release();
 		return hr;
 	}
+
+    // Compile the RTT vertex shader
+    ID3DBlob* pRTTVSBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "RTT_VS", "vs_4_0", &pRTTVSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the RTT vertex shader
+    hr = g_pd3dDevice->CreateVertexShader(pRTTVSBlob->GetBufferPointer(), pRTTVSBlob->GetBufferSize(), nullptr, &g_pQuadVS);
+    if (FAILED(hr))
+    {
+        pRTTVSBlob->Release();
+        return hr;
+    }
 
 	// Define the input layout
 	D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -446,27 +433,77 @@ HRESULT	InitMesh()
 	if (FAILED(hr))
 		return hr;
 
-	// Set the input layout
-	g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+    // Define the RTT input layout
+    D3D11_INPUT_ELEMENT_DESC RTTlayout[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT , D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+    UINT RRTNumElements = ARRAYSIZE(RTTlayout);
+
+    // Create the RTT input layout
+    hr = g_pd3dDevice->CreateInputLayout(RTTlayout, RRTNumElements, pRTTVSBlob->GetBufferPointer(), pRTTVSBlob->GetBufferSize(), &g_pQuadLayout);
+    pRTTVSBlob->Release();
+    if (FAILED(hr))
+        return hr;
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = nullptr;
 	hr = CompileShaderFromFile(L"shaderNormal.fx", "PS", "ps_4_0", &pPSBlob);
 	if (FAILED(hr))
 	{
-		MessageBox(nullptr,
-			L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+		MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
 		return hr;
 	}
-
 	// Create the pixel shader
 	hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &g_pPixelShader);
 	pPSBlob->Release();
 	if (FAILED(hr))
 		return hr;
 
-	// Create the constant buffer
+    // Compile the RTT pixel shader
+    ID3DBlob* pPSRTTBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "RTT_PS", "ps_4_0", &pPSRTTBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    hr = g_pd3dDevice->CreatePixelShader(pPSRTTBlob->GetBufferPointer(), pPSRTTBlob->GetBufferSize(), nullptr, &g_pQuadPS);
+    pPSRTTBlob->Release();
+    if (FAILED(hr))
+        return hr;
+
+    // Screen quad
+    g_ScreenQuad[0].pos = XMFLOAT3(-1.0f, 1.0f, 0.0f);
+    g_ScreenQuad[0].tex = XMFLOAT2(0.0f, 0.0f);
+    g_ScreenQuad[1].pos = XMFLOAT3(1.0f, 1.0f, 0.0f);
+    g_ScreenQuad[1].tex = XMFLOAT2(1.0f, 0.0f);
+    g_ScreenQuad[2].pos = XMFLOAT3(-1.0f, -1.0f, 0.0f);
+    g_ScreenQuad[2].tex = XMFLOAT2(0.0f, 1.0f);
+    g_ScreenQuad[3].pos = XMFLOAT3(1.0f, -1.0f, 0.0f);
+    g_ScreenQuad[3].tex = XMFLOAT2(1.0f, 1.0f);
+    /*for (short i = 0; i < 4; ++i)
+    {
+        g_ScreenQuad[i].pos.x = (g_ScreenQuad[i].pos.x / 2) - 0.5f;
+        g_ScreenQuad[i].pos.y = (g_ScreenQuad[i].pos.y / 2) - 0.5f;
+    }*/
+
     D3D11_BUFFER_DESC bd = {};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(SCREEN_VERTEX) * 4;
+    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    bd.CPUAccessFlags = 0;
+
+    // Create RTT vertex buffer
+    D3D11_SUBRESOURCE_DATA InitData = {};
+    InitData.pSysMem = g_ScreenQuad;
+    hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pScreenQuadVB);
+    if (FAILED(hr))
+        return hr;
+
+	// Create the constant buffer
+    //D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(SimpleVertex) * 24;
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -521,8 +558,7 @@ void CleanupDevice()
     if (g_pImmediateContext1) g_pImmediateContext1->Flush();
     g_pImmediateContext->Flush();
 
-    if (g_pLightConstantBuffer)
-        g_pLightConstantBuffer->Release();
+    if (g_pLightConstantBuffer) g_pLightConstantBuffer->Release();
     if (g_pVertexLayout) g_pVertexLayout->Release();
     if( g_pConstantBuffer ) g_pConstantBuffer->Release();
     if( g_pVertexShader ) g_pVertexShader->Release();
@@ -706,6 +742,37 @@ void HandlePerFrameInput(float deltaTime)
     }
 }
 
+void RenderScreenQuad()
+{
+    // -RTT-
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTRenderTargetView, g_pDepthStencilView);
+    g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::OrangeRed);
+
+    // Draw scene to RTT target
+    g_GameObject.draw(g_pImmediateContext);
+
+    // Reset target
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+
+    // New shaders
+    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pQuadPS, nullptr, 0);
+
+    // Screen quad
+    UINT stride = sizeof(SCREEN_VERTEX);
+    UINT offset = 0;
+    ID3D11Buffer* pBuffers[1] = { g_pScreenQuadVB };
+    g_pImmediateContext->IASetVertexBuffers(0, 1, pBuffers, &stride, &offset);
+
+    g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
+    g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pRTTShaderResourceView);
+    g_pImmediateContext->Draw(4, 0);
+    ID3D11ShaderResourceView* nullSRV = { nullptr };
+    g_pImmediateContext->PSSetShaderResources(0, 1, &nullSRV);
+}
+
 //--------------------------------------------------------------------------------------
 // Render a frame
 //--------------------------------------------------------------------------------------
@@ -719,18 +786,10 @@ void Render()
     g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, Colors::MidnightBlue);
 
     // Clear the depth buffer to 1.0 (max depth)
-    g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-
-    //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRTTRenderTargetView, );
-    //// RTT
-    //g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::MistyRose);
-    ////g_pImmediateContext->ClearDepthStencilView(g_pRTTStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
+    g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     // Update the cube transform, material etc. 
     g_GameObject.update(t, g_pImmediateContext);
-
     g_Camera.Update(g_hWnd);
     HandlePerFrameInput(t);
 
@@ -749,6 +808,11 @@ void Render()
 
     setupLightForRender();
 
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+
+    // Set the input layout
+    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+
     // Render the cube
     g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
     g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pConstantBuffer);
@@ -758,7 +822,10 @@ void Render()
     ID3D11Buffer* materialCB = g_GameObject.getMaterialConstantBuffer();
     g_pImmediateContext->PSSetConstantBuffers(1, 1, &materialCB);
 
-    g_GameObject.draw(g_pImmediateContext);
+    // Draw function
+    //g_GameObject.draw(g_pImmediateContext);
+
+    RenderScreenQuad();
 
     // ImGui
     ImGui_ImplDX11_NewFrame();
@@ -774,21 +841,4 @@ void Render()
 
     // Present our back buffer to our front buffer
     g_pSwapChain->Present(0, 0);
-
-
-    //RENDER TO TEX
-
-    g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTRenderTargetView, g_pRTTStencilView);
-
-    g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::MistyRose);
-
-    // Clear the depth buffer to 1.0 (max depth)
-    g_pImmediateContext->ClearDepthStencilView(g_pRTTStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-
-    g_GameObject.draw(g_pImmediateContext);
-
-    g_pSwapChain->Present(0, 0);
-
-    
 }

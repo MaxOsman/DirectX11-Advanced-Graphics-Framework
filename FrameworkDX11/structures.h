@@ -17,7 +17,7 @@ struct ConstantBuffer
 
 struct SCREEN_VERTEX
 {
-	XMFLOAT4 pos;
+	XMFLOAT3 pos;
 	XMFLOAT2 tex;
 };
 

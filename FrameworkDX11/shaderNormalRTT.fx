@@ -221,9 +221,9 @@ PS_INPUT VS( VS_INPUT input )
 // Pixel Shader
 //--------------------------------------------------------------------------------------
 
-PS_OUTPUT PS(PS_INPUT IN) : SV_TARGET
+float4 PS(PS_INPUT IN) : SV_TARGET
 {
-	PS_OUTPUT output = (PS_OUTPUT)0;
+	//PS_OUTPUT output = (PS_OUTPUT)0;
 
 	float3 texNormal = { 0, 0, 1 };
 	float2 texCoords = IN.Tex;
@@ -255,6 +255,13 @@ PS_OUTPUT PS(PS_INPUT IN) : SV_TARGET
 	}
 
 	return (emissive + ambient + diffuse + specular) * texColor;
+}
+
+float4 RTT_PS(PS_INPUT IN) : SV_TARGET
+{
+	float4 texColor = txDiffuse.Sample(samLinear, texCoords);
+
+	return texColor;
 }
 
 //--------------------------------------------------------------------------------------

@@ -42,26 +42,28 @@ ID3D11DeviceContext*		g_pImmediateContext = nullptr;
 ID3D11DeviceContext1*		g_pImmediateContext1 = nullptr;
 IDXGISwapChain*				g_pSwapChain = nullptr;
 IDXGISwapChain1*			g_pSwapChain1 = nullptr;
-ID3D11RenderTargetView*		g_pRenderTargetView = nullptr;
+
 ID3D11Texture2D*			g_pDepthStencilTexture = nullptr;
+ID3D11RenderTargetView*		g_pRenderTargetView = nullptr;
 ID3D11DepthStencilView*		g_pDepthStencilView = nullptr;
 ID3D11VertexShader*			g_pVertexShader = nullptr;
-
-ID3D11Texture2D*			g_pRTTRenderTargetTexture = nullptr;
-ID3D11Texture2D*			g_pRTTDepthStencilTexture = nullptr;
-ID3D11RenderTargetView*		g_pRTTRenderTargetView = nullptr;
-ID3D11ShaderResourceView*	g_pRTTShaderResourceView = nullptr;
-ID3D11DepthStencilView*		g_pRTTStencilView = nullptr;
 
 ID3D11PixelShader*			g_pPixelShader = nullptr;
 ID3D11InputLayout*			g_pVertexLayout = nullptr;
 ID3D11Buffer*				g_pConstantBuffer = nullptr;
 ID3D11Buffer*				g_pLightConstantBuffer = nullptr;
 
+// RTT
+ID3D11Texture2D*			g_pRTTRenderTargetTexture = nullptr;
+ID3D11RenderTargetView*		g_pRTTRenderTargetView = nullptr;
+ID3D11ShaderResourceView*	g_pRTTShaderResourceView = nullptr;
+ID3D11DepthStencilView*		g_pRTTStencilView = nullptr;
+
 ID3D11Buffer*				g_pScreenQuadVB = nullptr;
 ID3D11InputLayout*			g_pQuadLayout = nullptr;
 ID3D11VertexShader*			g_pQuadVS = nullptr;
 ID3D11PixelShader*			g_pQuadPS = nullptr;
+SCREEN_VERTEX				g_ScreenQuad[4];
 
 int							g_viewWidth;
 int							g_viewHeight;
