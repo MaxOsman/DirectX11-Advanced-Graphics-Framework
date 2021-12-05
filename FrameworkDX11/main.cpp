@@ -207,6 +207,9 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
+    UINT maxQuality = 0;
+    UINT sampleCount = 4;
+
     // Create swap chain
     IDXGIFactory2* dxgiFactory2 = nullptr;
     hr = dxgiFactory->QueryInterface( __uuidof(IDXGIFactory2), reinterpret_cast<void**>(&dxgiFactory2) );
@@ -223,10 +226,13 @@ HRESULT InitDevice()
         sd.Width = width;
         sd.Height = height;
 		sd.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;//  DXGI_FORMAT_R16G16B16A16_FLOAT;////DXGI_FORMAT_R8G8B8A8_UNORM;
-        sd.SampleDesc.Count = 1;
-        sd.SampleDesc.Quality = 0;
         sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         sd.BufferCount = 1;
+
+        sd.SampleDesc.Count = sampleCount;
+        hr = g_pd3dDevice->CheckMultisampleQualityLevels(sd.Format, sd.SampleDesc.Count, &maxQuality);
+        maxQuality = (maxQuality > 0 ? maxQuality - 1 : maxQuality);
+        sd.SampleDesc.Quality = maxQuality;
 
         hr = dxgiFactory2->CreateSwapChainForHwnd( g_pd3dDevice, g_hWnd, &sd, nullptr, nullptr, &g_pSwapChain1 );
         if (SUCCEEDED(hr))
@@ -248,8 +254,11 @@ HRESULT InitDevice()
         sd.BufferDesc.RefreshRate.Denominator = 1;
         sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         sd.OutputWindow = g_hWnd;
-        sd.SampleDesc.Count = 1;
-        sd.SampleDesc.Quality = 0;
+
+        sd.SampleDesc.Count = sampleCount;
+        hr = g_pd3dDevice->CheckMultisampleQualityLevels(sd.BufferDesc.Format, sd.SampleDesc.Count, &maxQuality);
+        maxQuality = (maxQuality > 0 ? maxQuality - 1 : maxQuality);
+        sd.SampleDesc.Quality = maxQuality;
         sd.Windowed = TRUE;
 
         hr = dxgiFactory->CreateSwapChain( g_pd3dDevice, &sd, &g_pSwapChain );
@@ -293,7 +302,7 @@ HRESULT InitDevice()
 
     D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
     renderTargetViewDesc.Format = textureDesc.Format;
-    renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
     renderTargetViewDesc.Texture2D.MipSlice = 0;
     hr = g_pd3dDevice->CreateRenderTargetView( g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView );
     if (FAILED(hr))
@@ -315,8 +324,8 @@ HRESULT InitDevice()
     descDepth.MipLevels = 1;
     descDepth.ArraySize = 1;
     descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    descDepth.SampleDesc.Count = 1;
-    descDepth.SampleDesc.Quality = 0;
+    descDepth.SampleDesc.Count = sampleCount;
+    descDepth.SampleDesc.Quality = maxQuality;
     descDepth.Usage = D3D11_USAGE_DEFAULT;
     descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     descDepth.CPUAccessFlags = 0;
@@ -328,15 +337,11 @@ HRESULT InitDevice()
     // Create the depth stencil view
     D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
     descDSV.Format = descDepth.Format;
-    descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
     descDSV.Texture2D.MipSlice = 0;
     hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencilTexture, &descDSV, &g_pDepthStencilView);
     if (FAILED(hr))
         return hr;
-
-    //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRenderTargetView, g_pDepthStencilView );
-
-    //g_pImmediateContext->OMSetRenderTargets( 1, &g_pRTTRenderTargetView, g_pDepthStencilView);
 
     // Setup the viewport
     D3D11_VIEWPORT vp;

@@ -255,6 +255,24 @@ void DrawableGameObject::update(float t, ID3D11DeviceContext* pContext)
 	pContext->UpdateSubresource(m_pMaterialConstantBuffer, 0, nullptr, &m_material, 0, 0);
 }
 
+void DrawableGameObject::draw(ID3D11DeviceContext* pContext, ID3D11ShaderResourceView* texture)
+{
+	// Set vertex buffer
+	UINT stride = sizeof(SimpleVertex);
+	UINT offset = 0;
+	pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+
+	// Set index buffer
+	pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+
+	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	pContext->PSSetShaderResources(0, 1, &texture);
+	pContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
+
+	pContext->DrawIndexed(NUM_VERTICES, 0, 0);
+}
+
 void DrawableGameObject::draw(ID3D11DeviceContext* pContext)
 {
 	// Set vertex buffer
