@@ -283,6 +283,23 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
+    D3D11_RASTERIZER_DESC wfdesc;
+    ZeroMemory(&wfdesc, sizeof(D3D11_RASTERIZER_DESC));
+    wfdesc.AntialiasedLineEnable = true;
+    wfdesc.CullMode = D3D11_CULL_BACK;
+    wfdesc.DepthBias = 0;
+    wfdesc.DepthBiasClamp = 0.0f;
+    wfdesc.DepthClipEnable = true;
+    wfdesc.FillMode = D3D11_FILL_SOLID;
+    wfdesc.FrontCounterClockwise = false;
+    wfdesc.MultisampleEnable = true;
+    wfdesc.ScissorEnable = false;
+    wfdesc.SlopeScaledDepthBias = 0.0f;
+    ID3D11RasterizerState* rsstate;
+    hr = g_pd3dDevice->CreateRasterizerState(&wfdesc, &rsstate);
+    g_pImmediateContext->RSSetState(rsstate);
+    
+
     // Week 6 - Render to texture
     // Code based on www.braynzarsoft.net/viewtutorial/q16390-35-render-to-texture
     D3D11_TEXTURE2D_DESC textureDesc = {};
@@ -296,6 +313,8 @@ HRESULT InitDevice()
     textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
     textureDesc.CPUAccessFlags = 0;
     textureDesc.MiscFlags = 0;
+    textureDesc.SampleDesc.Count = sampleCount;
+    textureDesc.SampleDesc.Quality = maxQuality;
     g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pRTTRenderTargetTexture);
     if (FAILED(hr))
         return hr;
@@ -310,7 +329,7 @@ HRESULT InitDevice()
 
     D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
     shaderResourceViewDesc.Format = textureDesc.Format;
-    shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
     shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
     shaderResourceViewDesc.Texture2D.MipLevels = 1;
     hr = g_pd3dDevice->CreateShaderResourceView( g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView );
@@ -488,11 +507,11 @@ HRESULT	InitMesh()
     g_ScreenQuad[2].tex = XMFLOAT2(0.0f, 1.0f);
     g_ScreenQuad[3].pos = XMFLOAT3(1.0f, -1.0f, 0.0f);
     g_ScreenQuad[3].tex = XMFLOAT2(1.0f, 1.0f);
-    /*for (short i = 0; i < 4; ++i)
+    for (short i = 0; i < 4; ++i)
     {
         g_ScreenQuad[i].pos.x = (g_ScreenQuad[i].pos.x / 2) - 0.5f;
         g_ScreenQuad[i].pos.y = (g_ScreenQuad[i].pos.y / 2) - 0.5f;
-    }*/
+    }
 
     D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
@@ -752,6 +771,7 @@ void RenderScreenQuad()
     // -RTT-
     g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTRenderTargetView, g_pDepthStencilView);
     g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::OrangeRed);
+    g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     // Draw scene to RTT target
     g_GameObject.draw(g_pImmediateContext);
@@ -828,7 +848,7 @@ void Render()
     g_pImmediateContext->PSSetConstantBuffers(1, 1, &materialCB);
 
     // Draw function
-    //g_GameObject.draw(g_pImmediateContext);
+    g_GameObject.draw(g_pImmediateContext);
 
     RenderScreenQuad();
 
