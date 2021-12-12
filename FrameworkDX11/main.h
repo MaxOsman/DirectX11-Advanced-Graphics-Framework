@@ -26,8 +26,8 @@ using namespace std;
 
 typedef vector<DrawableGameObject*> vecDrawables;
 
-#define WINDOW_WIDTH (960)
-#define WINDOW_HEIGHT (540)
+#define WINDOW_WIDTH 960
+#define WINDOW_HEIGHT 540
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -46,9 +46,11 @@ IDXGISwapChain1*			g_pSwapChain1 = nullptr;
 ID3D11Texture2D*			g_pDepthStencilTexture = nullptr;
 ID3D11RenderTargetView*		g_pRenderTargetView = nullptr;
 ID3D11DepthStencilView*		g_pDepthStencilView = nullptr;
-ID3D11VertexShader*			g_pVertexShader = nullptr;
 
+ID3D11VertexShader*			g_pVertexShader = nullptr;
 ID3D11PixelShader*			g_pPixelShader = nullptr;
+ID3D11GeometryShader*		g_GeometryShader = nullptr;
+
 ID3D11InputLayout*			g_pVertexLayout = nullptr;
 ID3D11Buffer*				g_pConstantBuffer = nullptr;
 ID3D11Buffer*				g_pLightConstantBuffer = nullptr;
@@ -58,6 +60,15 @@ ID3D11Texture2D*			g_pRTTRenderTargetTexture = nullptr;
 ID3D11RenderTargetView*		g_pRTTRenderTargetView = nullptr;
 ID3D11ShaderResourceView*	g_pRTTShaderResourceView = nullptr;
 ID3D11DepthStencilView*		g_pRTTStencilView = nullptr;
+
+// Sprites
+ID3D11GeometryShader*		g_GeometryBillboardShader = nullptr;
+ID3D11Buffer*				g_pSpriteVertexBuffer = nullptr;
+ID3D11InputLayout*			g_pSpriteLayout = nullptr;
+ID3D11ShaderResourceView*	g_pSpriteTexture = nullptr;
+const int					g_numberOfSprites = 125;
+SCREEN_VERTEX				g_pSpriteArray[g_numberOfSprites];
+ID3D11Buffer*				g_pSpriteConstantBuffer = nullptr;
 
 ID3D11Buffer*				g_pScreenQuadVB = nullptr;
 ID3D11InputLayout*			g_pQuadLayout = nullptr;

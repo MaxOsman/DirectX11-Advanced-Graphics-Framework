@@ -208,7 +208,7 @@ HRESULT InitDevice()
         return hr;
 
     UINT maxQuality = 0;
-    UINT sampleCount = 4;
+    UINT sampleCount = 1;
 
     // Create swap chain
     IDXGIFactory2* dxgiFactory2 = nullptr;
@@ -254,12 +254,12 @@ HRESULT InitDevice()
         sd.BufferDesc.RefreshRate.Denominator = 1;
         sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         sd.OutputWindow = g_hWnd;
+        sd.Windowed = TRUE;
 
         sd.SampleDesc.Count = sampleCount;
         hr = g_pd3dDevice->CheckMultisampleQualityLevels(sd.BufferDesc.Format, sd.SampleDesc.Count, &maxQuality);
         maxQuality = (maxQuality > 0 ? maxQuality - 1 : maxQuality);
         sd.SampleDesc.Quality = maxQuality;
-        sd.Windowed = TRUE;
 
         hr = dxgiFactory->CreateSwapChain( g_pd3dDevice, &sd, &g_pSwapChain );
     }
@@ -283,8 +283,7 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    D3D11_RASTERIZER_DESC wfdesc;
-    ZeroMemory(&wfdesc, sizeof(D3D11_RASTERIZER_DESC));
+    D3D11_RASTERIZER_DESC wfdesc = {};
     wfdesc.AntialiasedLineEnable = true;
     wfdesc.CullMode = D3D11_CULL_BACK;
     wfdesc.DepthBias = 0;
@@ -298,7 +297,6 @@ HRESULT InitDevice()
     ID3D11RasterizerState* rsstate;
     hr = g_pd3dDevice->CreateRasterizerState(&wfdesc, &rsstate);
     g_pImmediateContext->RSSetState(rsstate);
-    
 
     // Week 6 - Render to texture
     // Code based on www.braynzarsoft.net/viewtutorial/q16390-35-render-to-texture
@@ -336,6 +334,7 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
+    // Default scene
     // Create depth stencil texture
     D3D11_TEXTURE2D_DESC descDepth = {};
     descDepth.Width = width;
@@ -440,6 +439,35 @@ HRESULT	InitMesh()
         return hr;
     }
 
+    // Set up geometry shader
+    ID3DBlob* pGSBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS", "gs_4_0", &pGSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    hr = g_pd3dDevice->CreateGeometryShader(pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, &g_GeometryShader);
+    pGSBlob->Release();
+    if (FAILED(hr))
+        return hr;
+
+    // Set up geometry billboarding shader
+    ID3DBlob* pGSBillBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS_BILL", "gs_4_0", &pGSBillBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    hr = g_pd3dDevice->CreateGeometryShader(pGSBillBlob->GetBufferPointer(), pGSBillBlob->GetBufferSize(), nullptr, &g_GeometryBillboardShader);
+    if (FAILED(hr))
+    {
+        pGSBillBlob->Release();
+        return hr;
+    }
+
+
 	// Define the input layout
 	D3D11_INPUT_ELEMENT_DESC layout[] =
     {
@@ -450,7 +478,6 @@ HRESULT	InitMesh()
         { "BINORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 	UINT numElements = ARRAYSIZE(layout);
-
 	// Create the input layout
 	hr = g_pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), &g_pVertexLayout);
 	pVSBlob->Release();
@@ -464,12 +491,12 @@ HRESULT	InitMesh()
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
     UINT RRTNumElements = ARRAYSIZE(RTTlayout);
-
     // Create the RTT input layout
     hr = g_pd3dDevice->CreateInputLayout(RTTlayout, RRTNumElements, pRTTVSBlob->GetBufferPointer(), pRTTVSBlob->GetBufferSize(), &g_pQuadLayout);
     pRTTVSBlob->Release();
     if (FAILED(hr))
         return hr;
+
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = nullptr;
@@ -493,10 +520,15 @@ HRESULT	InitMesh()
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
         return hr;
     }
+    // Create the RTT pixel shader
     hr = g_pd3dDevice->CreatePixelShader(pPSRTTBlob->GetBufferPointer(), pPSRTTBlob->GetBufferSize(), nullptr, &g_pQuadPS);
     pPSRTTBlob->Release();
     if (FAILED(hr))
         return hr;
+
+
+    hr = CreateDDSTextureFromFile(g_pd3dDevice, L"Resources\\stone.dds", nullptr, &g_pSpriteTexture);
+
 
     // Screen quad
     g_ScreenQuad[0].pos = XMFLOAT3(-1.0f, 1.0f, 0.0f);
@@ -507,11 +539,11 @@ HRESULT	InitMesh()
     g_ScreenQuad[2].tex = XMFLOAT2(0.0f, 1.0f);
     g_ScreenQuad[3].pos = XMFLOAT3(1.0f, -1.0f, 0.0f);
     g_ScreenQuad[3].tex = XMFLOAT2(1.0f, 1.0f);
-    for (short i = 0; i < 4; ++i)
+    /*for (short i = 0; i < 4; ++i)
     {
         g_ScreenQuad[i].pos.x = (g_ScreenQuad[i].pos.x / 2) - 0.5f;
         g_ScreenQuad[i].pos.y = (g_ScreenQuad[i].pos.y / 2) - 0.5f;
-    }
+    }*/
 
     D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
@@ -526,8 +558,35 @@ HRESULT	InitMesh()
     if (FAILED(hr))
         return hr;
 
+    for (unsigned short i = 0; i < 5; ++i)
+    {
+        for (unsigned short j = 0; j < 5; ++j)
+        {
+            for (unsigned short k = 0; k < 5; ++k)
+            {
+                g_pSpriteArray[k + j * 5 + i * 25].pos = XMFLOAT3(-10.0f + 2 * i, 5.0f + 2 * j, -10.0f + 2 * k);
+                g_pSpriteArray[k + j * 5 + i * 25].tex = XMFLOAT2(0.0f, 0.0f);
+            }
+        }
+    }
+    /*for (unsigned short i = 0; i < g_numberOfSprites; ++i)
+    {
+        g_pSpriteArray[i].pos = XMFLOAT3( -50.0f + i, 5.0f, 0.0f );
+        g_pSpriteArray[i].tex = XMFLOAT2( 0.0f, 0.0f );
+    }*/
+
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(SCREEN_VERTEX) * g_numberOfSprites;
+    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    bd.CPUAccessFlags = 0;
+
+    // Create sprite vertex buffer
+    InitData.pSysMem = g_pSpriteArray;
+    hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pSpriteVertexBuffer);
+    if (FAILED(hr))
+        return hr;
+
 	// Create the constant buffer
-    //D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(SimpleVertex) * 24;
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -552,6 +611,15 @@ HRESULT	InitMesh()
 	hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pLightConstantBuffer);
 	if (FAILED(hr))
 		return hr;
+
+    // Create the billboard constant buffer
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(BillboardConstantBuffer);
+    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bd.CPUAccessFlags = 0;
+    hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pSpriteConstantBuffer);
+    if (FAILED(hr))
+        return hr;
 
 	return hr;
 }
@@ -587,6 +655,7 @@ void CleanupDevice()
     if( g_pConstantBuffer ) g_pConstantBuffer->Release();
     if( g_pVertexShader ) g_pVertexShader->Release();
     if( g_pPixelShader ) g_pPixelShader->Release();
+    if (g_GeometryShader) g_GeometryShader->Release();
     if( g_pDepthStencilTexture) g_pDepthStencilTexture->Release();
     if( g_pDepthStencilView ) g_pDepthStencilView->Release();
     if( g_pRenderTargetView ) g_pRenderTargetView->Release();
@@ -602,6 +671,11 @@ void CleanupDevice()
     if (g_pQuadLayout) g_pQuadLayout->Release();
     if (g_pQuadVS) g_pQuadVS->Release();
     if (g_pQuadPS) g_pQuadPS->Release();
+    if (g_pSpriteVertexBuffer) g_pSpriteVertexBuffer->Release();
+    if (g_pSpriteLayout) g_pSpriteLayout->Release();
+    if (g_GeometryBillboardShader) g_GeometryBillboardShader->Release();
+    if (g_pSpriteTexture) g_pSpriteTexture->Release();
+    if (g_pSpriteConstantBuffer) g_pSpriteConstantBuffer->Release();
 
     ID3D11Debug* debugDevice = nullptr;
     g_pd3dDevice->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&debugDevice));
@@ -693,7 +767,7 @@ void setupLightForRender()
     light.LinearAttenuation = 1;
     light.QuadraticAttenuation = 1;
 
-    // set up the light
+    // Set up the light
     XMFLOAT4 LightPosition = { 0.0f, 0.0f, -3.0f, 1.0f };
     light.Position = LightPosition;
     XMVECTOR LightDirection = XMVectorSet(-LightPosition.x, -LightPosition.y, -LightPosition.z, 0.0f);
@@ -704,6 +778,13 @@ void setupLightForRender()
     lightProperties.EyePosition = { g_Camera.GetEye().x, g_Camera.GetEye().y, g_Camera.GetEye().z, 1.0f };
     lightProperties.Lights[0] = light;
     g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
+
+
+    // Set up billboard
+    BillboardConstantBuffer billboardProperties;
+    billboardProperties.EyePos = { g_Camera.GetEye().x, g_Camera.GetEye().y, g_Camera.GetEye().z, 1.0f };
+    billboardProperties.UpVector = g_Camera.GetUp();
+    g_pImmediateContext->UpdateSubresource(g_pSpriteConstantBuffer, 0, nullptr, &billboardProperties, 0, 0);
 }
 
 float calculateDeltaTime()
@@ -766,6 +847,38 @@ void HandlePerFrameInput(float deltaTime)
     }
 }
 
+void DrawScene()
+{
+    // Render the cube
+    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
+    g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
+
+    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+    ID3D11Buffer* materialCB = g_GameObject.getMaterialConstantBuffer();
+    g_pImmediateContext->PSSetConstantBuffers(1, 1, &materialCB);
+
+    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+    g_GameObject.draw(g_pImmediateContext);
+
+    // Render the sprites
+    UINT stride = sizeof(SCREEN_VERTEX);
+    UINT offset = 0;
+    ID3D11Buffer* pSpriteBuffers[1] = { g_pSpriteVertexBuffer };
+    g_pImmediateContext->IASetVertexBuffers(0, 1, pSpriteBuffers, &stride, &offset);
+    g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
+    g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pQuadPS, nullptr, 0);
+
+    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pSpriteTexture);
+    g_pImmediateContext->GSSetConstantBuffers(3, 1, &g_pSpriteConstantBuffer);
+    g_pImmediateContext->Draw(g_numberOfSprites, 0);
+}
+
 void RenderScreenQuad()
 {
     // -RTT-
@@ -774,13 +887,14 @@ void RenderScreenQuad()
     g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     // Draw scene to RTT target
-    g_GameObject.draw(g_pImmediateContext);
+    DrawScene();
 
     // Reset target
     g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 
     // New shaders
     g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->GSSetShader(NULL, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pQuadPS, nullptr, 0);
 
     // Screen quad
@@ -796,6 +910,7 @@ void RenderScreenQuad()
     g_pImmediateContext->Draw(4, 0);
     ID3D11ShaderResourceView* nullSRV = { nullptr };
     g_pImmediateContext->PSSetShaderResources(0, 1, &nullSRV);
+    //g_pImmediateContext->GSSetShaderResources(3, 1, &nullSRV);
 }
 
 //--------------------------------------------------------------------------------------
@@ -818,10 +933,10 @@ void Render()
     g_Camera.Update(g_hWnd);
     HandlePerFrameInput(t);
 
-    // get the game object world transform
+    // Get the game object world transform
     XMMATRIX mGO = XMLoadFloat4x4(g_GameObject.getTransform());
 
-    // store this and the view / projection in a constant buffer for the vertex shader to use
+    // Store this and the view / projection in a constant buffer for the vertex shader to use
     ConstantBuffer cb1;
     cb1.mWorld = XMMatrixTranspose(mGO);
     XMFLOAT4X4 v = g_Camera.GetView();
@@ -835,20 +950,8 @@ void Render()
 
     g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 
-    // Set the input layout
-    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
-
-    // Render the cube
-    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
-    g_pImmediateContext->VSSetConstantBuffers(0, 1, &g_pConstantBuffer);
-
-    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
-    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
-    ID3D11Buffer* materialCB = g_GameObject.getMaterialConstantBuffer();
-    g_pImmediateContext->PSSetConstantBuffers(1, 1, &materialCB);
-
-    // Draw function
-    g_GameObject.draw(g_pImmediateContext);
+    // Draw functions
+    DrawScene();
 
     RenderScreenQuad();
 

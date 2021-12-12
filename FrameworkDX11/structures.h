@@ -108,3 +108,9 @@ struct LightPropertiesConstantBuffer
 	//----------------------------------- (16 byte boundary)
 	Light               Lights[MAX_LIGHTS]; // 80 * 8 bytes
 };  // Total:                                  672 bytes (42 * 16)
+
+struct BillboardConstantBuffer
+{
+	DirectX::XMFLOAT4	EyePos;
+	DirectX::XMFLOAT4	UpVector;
+};

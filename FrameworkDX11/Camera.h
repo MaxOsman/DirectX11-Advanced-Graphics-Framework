@@ -26,11 +26,11 @@ private:
 	XMFLOAT3 _at;
 	XMFLOAT3 _up;
 
-	float pitch;
-	float yaw;
-	float rotationSpeed;
+	float pitch = 0.0f;
+	float yaw = 0.0f;
+	float rotationSpeed = 0.004f;
 
-	bool isActive;
+	bool isActive = false;
 
 public:
 	Camera() {}
@@ -42,7 +42,7 @@ public:
 	XMFLOAT4X4 GetProjection() { return _projection; }
 	XMFLOAT3 GetEye() { return _eye; }
 	XMFLOAT3 GetAt() { return _at; }
-	XMFLOAT3 GetUp() { return _up; }
+	XMFLOAT4 GetUp() { return XMFLOAT4( _up.x, _up.y, _up.z, 0.0f ); }
 	float GetYaw() { return yaw; }
 	float GetPitch() { return pitch; }
 	

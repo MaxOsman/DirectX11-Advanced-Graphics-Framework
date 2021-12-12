@@ -14,32 +14,32 @@ Camera::Camera(int windowHeight, int windowWidth, XMFLOAT3 eye, XMFLOAT3 at, XMF
 
     // Initialize the projection matrix
     XMStoreFloat4x4(&_projection, XMMatrixPerspectiveFovLH(XM_PIDIV2, windowHeight * XM_PI / (FLOAT)windowWidth, 0.01f, 100.0f));
-
-    pitch = 0.0f;
-    yaw = 0.0f;
-    rotationSpeed = 0.005f;
-    isActive = false;
 }
 
 void Camera::Update(HWND hWnd)
 {
     if (isActive)
     {
-        //Get screen coords
+        // Get screen coords
         GetClientRect(hWnd, &rc);
         MapWindowPoints(hWnd, nullptr, reinterpret_cast<POINT*>(&rc), 2);
 
-        //Check position
+        // Check position
         GetCursorPos(&point);
         POINT newPoint = { point.x - (0.5 * rc.right + 0.5 * rc.left), point.y - (0.5 * rc.bottom + 0.5 * rc.top) };
 
-        //Do player rotation
+        // Do player rotation
         Rotate(newPoint.x, newPoint.y);
 
-        //Reset position
+        // Reset position
         SetCursorPos(0.5 * rc.right + 0.5 * rc.left, 0.5 * rc.bottom + 0.5 * rc.top);
 
         XMStoreFloat4x4(&_view, GetMatrix1st());
+
+        // Update up vector
+        XMFLOAT3 tempUp = XMFLOAT3(0.0f, 1.0f, 0.0f);
+        XMStoreFloat3(&tempUp, XMVector3Transform(XMLoadFloat3(&tempUp), XMMatrixRotationRollPitchYaw(pitch, yaw, 0.0f)));
+        _up = tempUp;
     }
 }
 

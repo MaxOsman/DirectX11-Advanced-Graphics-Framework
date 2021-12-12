@@ -75,7 +75,13 @@ cbuffer LightProperties : register(b2)
 	float4 GlobalAmbient;               // 16 bytes
 										//----------------------------------- (16 byte boundary)
 	Light Lights[MAX_LIGHTS];           // 80 * 8 = 640 bytes
-}; 
+};
+
+cbuffer BillboardProperties : register(b3)
+{
+	float4 EyePos;
+	float4 UpVector;
+};
 
 //--------------------------------------------------------------------------------------
 
@@ -93,6 +99,11 @@ struct RTT_VS_INPUT
 	float4 Pos : POSITION;
 	float2 Tex : TEXCOORD0;
 };
+
+//struct GS_BILL_INPUT
+//{
+//	float4 worldPos : POSITION;
+//};
 
 struct PS_INPUT
 {
@@ -119,7 +130,7 @@ float4 DoDiffuse(Light light, float3 L, float3 N)
 
 float4 DoSpecular(Light lightObject, float3 vertexToEye, float3 lightDirectionToVertex, float3 Normal)
 {
-	float4 lightDir = float4(normalize(-lightDirectionToVertex), 1);
+	float3 lightDir = normalize(-lightDirectionToVertex);
 	vertexToEye = normalize(vertexToEye);
 
 	float lightIntensity = saturate(dot(Normal, lightDir));
@@ -192,33 +203,15 @@ LightingResult ComputeLighting(float4 vertexPos, float3 N)
 }
 
 //--------------------------------------------------------------------------------------
-// Vertex Shader
+// Vertex Shaders
 //--------------------------------------------------------------------------------------
-PS_INPUT VS( VS_INPUT input )
+VS_INPUT VS( VS_INPUT input )
 {
-    PS_INPUT output = (PS_INPUT)0;
-    output.Pos = mul( input.Pos, World );
-	output.worldPos = output.Pos;
-    output.Pos = mul( output.Pos, View );
-    output.Pos = mul( output.Pos, Projection );
+	VS_INPUT output = (VS_INPUT)0;
 
-	output.Tex = input.Tex;
+	output = input;
 
-	// multiply the normal by the world transform (to go from model space to world space)
-	output.Norm = mul(float4(input.Norm, 1), World).xyz;
-
-	// Week 2 lecture slides
-	float3 T = mul(float4(input.Tan, 1), World).xyz;
-	float3 B = mul(float4(input.Binorm, 1), World).xyz;
-	float3x3 TBN = float3x3(T, B, output.Norm);
-	output.Tbn = TBN;
-
-	// Week 3 lecture slides
-	/*TBN = transpose(TBN);
-	output.eyePosTS = normalize(mul(EyePosition.xyz, TBN));
-	output.posTS = normalize(mul(output.worldPos.xyz, TBN));*/
-    
-    return output;
+	return output;
 }
 
 RTT_PS_INPUT RTT_VS( RTT_VS_INPUT input )
@@ -231,13 +224,92 @@ RTT_PS_INPUT RTT_VS( RTT_VS_INPUT input )
 	return output;
 }
 
+//RTT_PS_INPUT BILL_VS( RTT_VS_INPUT input )
+//{
+//	RTT_PS_INPUT output = (RTT_PS_INPUT)0;
+//
+//	output.Pos = input.Pos;
+//	output.Tex = float2(0.0f, 0.0f);
+//
+//	return output;
+//}
+
+//--------------------------------------------------------------------------------------
+// Geometry Shaders
+//--------------------------------------------------------------------------------------
+[maxvertexcount(6)]
+void GS(triangle VS_INPUT input[3], inout TriangleStream<PS_INPUT> OutputStream)
+{
+	PS_INPUT output = (PS_INPUT)0;
+	for (int i = 0; i < 3; ++i)
+	{
+		output.Pos = mul(input[i].Pos, World);
+		output.worldPos = output.Pos;
+		output.Pos = mul(output.Pos, View);
+		output.Pos = mul(output.Pos, Projection);
+
+		output.Tex = input[i].Tex;
+
+		// multiply the normal by the world transform (to go from model space to world space)
+		output.Norm = mul(float4(input[i].Norm, 1), World).xyz;
+
+		// Week 2 lecture slides
+		float3 T = mul(float4(input[i].Tan, 1), World).xyz;
+		float3 B = mul(float4(input[i].Binorm, 1), World).xyz;
+		float3x3 TBN = float3x3(T, B, output.Norm);
+		output.Tbn = TBN;
+
+		// Week 3 lecture slides
+		/*TBN = transpose(TBN);
+		output.eyePosTS = normalize(mul(EyePosition.xyz, TBN));
+		output.posTS = normalize(mul(output.worldPos.xyz, TBN));*/
+
+		OutputStream.Append(output);
+	}
+}
+
+// Based on www.braynzarsoft.net/viewtutorial/q16390-36-billboarding-geometry-shader
+[maxvertexcount(4)]
+void GS_BILL(point RTT_PS_INPUT input[1], inout TriangleStream<RTT_PS_INPUT> OutputStream)
+{
+	float3 planeNormal = input[0].Pos.xyz - EyePos.xyz;
+	planeNormal = normalize(planeNormal);
+
+	float3 rightVector = normalize(cross(planeNormal, UpVector.xyz));
+	rightVector /= 2;
+
+	float3 vert[4];
+	vert[0] = input[0].Pos.xyz - rightVector;
+	vert[1] = input[0].Pos.xyz + rightVector;
+	vert[2] = input[0].Pos.xyz - rightVector + UpVector.xyz;
+	vert[3] = input[0].Pos.xyz + rightVector + UpVector.xyz;
+
+	float2 texCoord[4];
+	texCoord[0] = float2(0, 1);
+	texCoord[1] = float2(1, 1);
+	texCoord[2] = float2(0, 0);
+	texCoord[3] = float2(1, 0);
+
+	RTT_PS_INPUT output;
+	for (int i = 0; i < 4; ++i)
+	{
+		//output.worldPos = float4(vert[i], 1.0f);
+		output.Pos = mul(float4(vert[i], 1.0f), View);
+		output.Pos = mul(output.Pos, Projection);
+
+		output.Tex = texCoord[i];
+
+		OutputStream.Append(output);
+	}
+}
+
 //--------------------------------------------------------------------------------------
 // Pixel Shader
 //--------------------------------------------------------------------------------------
 
 float4 PS(PS_INPUT IN) : SV_TARGET
 {
-	float3 texNormal = { 0, 0, 1 };
+	float4 texNormal = { 0, 0, 1, 0 };
 	float2 texCoords = IN.Tex;
 	if (Material.UseTexture)
 	{
@@ -253,7 +325,7 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 		texNormal = normalize(texNormal);
 	}
 
-	LightingResult lit = ComputeLighting(IN.worldPos, normalize(mul(texNormal, IN.Tbn)));
+	LightingResult lit = ComputeLighting(IN.worldPos, normalize(mul(texNormal.xyz, IN.Tbn)));
 
 	float4 emissive = Material.Emissive;
 	float4 ambient = Material.Ambient * GlobalAmbient;
