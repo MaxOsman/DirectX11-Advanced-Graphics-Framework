@@ -100,20 +100,17 @@ struct RTT_VS_INPUT
 	float2 Tex : TEXCOORD0;
 };
 
-//struct GS_BILL_INPUT
-//{
-//	float4 worldPos : POSITION;
-//};
-
 struct PS_INPUT
 {
     float4 Pos : SV_POSITION;
 	float4 worldPos : POSITION;
 	float3 Norm : NORMAL;
 	float2 Tex : TEXCOORD0;
+	float3 eyePosTS : POSITION2;
+	float3 posTS : POSITION3;
+	float3 eyeVectorTS : POSITION4;
+	//float3 lightVectorTS : POSITION5;
 	float3x3 Tbn : TBN;
-	/*float3 eyePosTS : POSITION2;
-	float3 posTS : POSITION3;*/
 };
 
 struct RTT_PS_INPUT
@@ -122,13 +119,13 @@ struct RTT_PS_INPUT
 	float2 Tex : TEXCOORD0;
 };
 
-float4 DoDiffuse(Light light, float3 L, float3 N)
+float4 DoDiffuse(float4 lightColour, float3 L, float3 N)
 {
 	float NdotL = max(0, dot(N, L));
-	return light.Color * NdotL;
+	return lightColour * NdotL;
 }
 
-float4 DoSpecular(Light lightObject, float3 vertexToEye, float3 lightDirectionToVertex, float3 Normal)
+float4 DoSpecular(float3 vertexToEye, float3 lightDirectionToVertex, float3 Normal)
 {
 	float3 lightDir = normalize(-lightDirectionToVertex);
 	vertexToEye = normalize(vertexToEye);
@@ -155,31 +152,27 @@ struct LightingResult
 	float4 Specular;
 };
 
-LightingResult DoPointLight(Light light, float3 vertexToEye, float4 vertexPos, float3 N)
+LightingResult DoPointLight(Light light, float3 vertexToEye, float4 vertexPos, float3 N, float3 vertexToLight)
 {
 	LightingResult result;
 
-	float3 LightDirectionToVertex = (vertexPos - light.Position).xyz;
+	float3 LightDirectionToVertex = mul(vertexToLight, -1.0f);
 	float distance = length(LightDirectionToVertex);
 	LightDirectionToVertex = LightDirectionToVertex / distance;
 
-	float3 vertexToLight = (light.Position - vertexPos).xyz;
 	distance = length(vertexToLight);
 	vertexToLight = vertexToLight / distance;
 
 	float attenuation = DoAttenuation(light, distance);
-	attenuation = 1;
 
-	result.Diffuse = DoDiffuse(light, vertexToLight, N) * attenuation;
-	result.Specular = DoSpecular(light, vertexToEye, LightDirectionToVertex, N) * attenuation;
+	result.Diffuse = DoDiffuse(light.Color, vertexToLight, N) * attenuation;
+	result.Specular = DoSpecular(vertexToEye, LightDirectionToVertex, N) * attenuation;
 
 	return result;
 }
 
-LightingResult ComputeLighting(float4 vertexPos, float3 N)
+LightingResult ComputeLighting(float4 vertexPos, float3 N, float3 vertexToEye, float3x3 Tbn)
 {
-	float3 vertexToEye = normalize(EyePosition - vertexPos).xyz;
-
 	LightingResult totalResult = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 } };
 
 	[unroll]
@@ -190,7 +183,8 @@ LightingResult ComputeLighting(float4 vertexPos, float3 N)
 		if (!Lights[i].Enabled)
 			continue;
 
-		result = DoPointLight(Lights[i], vertexToEye, vertexPos, N);
+		float3 vertexToLight = mul((Lights[i].Position - vertexPos).xyz, Tbn);
+		result = DoPointLight(Lights[i], vertexToEye, vertexPos, N, vertexToLight);
 
 		totalResult.Diffuse += result.Diffuse;
 		totalResult.Specular += result.Specular;
@@ -224,19 +218,10 @@ RTT_PS_INPUT RTT_VS( RTT_VS_INPUT input )
 	return output;
 }
 
-//RTT_PS_INPUT BILL_VS( RTT_VS_INPUT input )
-//{
-//	RTT_PS_INPUT output = (RTT_PS_INPUT)0;
-//
-//	output.Pos = input.Pos;
-//	output.Tex = float2(0.0f, 0.0f);
-//
-//	return output;
-//}
-
 //--------------------------------------------------------------------------------------
 // Geometry Shaders
 //--------------------------------------------------------------------------------------
+
 [maxvertexcount(6)]
 void GS(triangle VS_INPUT input[3], inout TriangleStream<PS_INPUT> OutputStream)
 {
@@ -257,12 +242,15 @@ void GS(triangle VS_INPUT input[3], inout TriangleStream<PS_INPUT> OutputStream)
 		float3 T = mul(float4(input[i].Tan, 1), World).xyz;
 		float3 B = mul(float4(input[i].Binorm, 1), World).xyz;
 		float3x3 TBN = float3x3(T, B, output.Norm);
+		TBN = transpose(TBN);
 		output.Tbn = TBN;
 
+		output.eyeVectorTS = normalize(mul((EyePosition - output.worldPos).xyz, TBN));
+		//output.lightVectorTS = normalize(mul((Lights[0].Position - output.worldPos).xyz, TBN));
+
 		// Week 3 lecture slides
-		/*TBN = transpose(TBN);
 		output.eyePosTS = normalize(mul(EyePosition.xyz, TBN));
-		output.posTS = normalize(mul(output.worldPos.xyz, TBN));*/
+		output.posTS = normalize(mul(output.worldPos.xyz, TBN));
 
 		OutputStream.Append(output);
 	}
@@ -309,23 +297,21 @@ void GS_BILL(point RTT_PS_INPUT input[1], inout TriangleStream<RTT_PS_INPUT> Out
 
 float4 PS(PS_INPUT IN) : SV_TARGET
 {
-	float4 texNormal = { 0, 0, 1, 0 };
+	float4 texNormal = float4(IN.Norm, 0.0f);
 	float2 texCoords = IN.Tex;
 	if (Material.UseTexture)
 	{
-		/*float3x3 TBNINV = transpose(IN.Tbn);
-		float3 eyePosTS = normalize(mul(EyePosition.xyz, TBNINV));
-		float3 posTS = normalize(mul(IN.worldPos.xyz, TBNINV));
 		float3 viewDir = normalize(IN.eyePosTS - IN.posTS);
-		float height = txParallax.Sample(samLinear, IN.Tex).x;
-		texCoords = IN.Tex - float2( viewDir.xy / viewDir.z * (height * 0.1f) );*/
+		float height = txParallax.Sample(samLinear, texCoords).x;
+		float2 p = viewDir.xy / viewDir.z * height * 0.1f;
+		texCoords = texCoords - p;
 
-		texNormal = txNormal.Sample(samLinear, IN.Tex);
+		texNormal = txNormal.Sample(samLinear, texCoords);
 		texNormal = mul(texNormal, 2) - 1;
 		texNormal = normalize(texNormal);
 	}
 
-	LightingResult lit = ComputeLighting(IN.worldPos, normalize(mul(texNormal.xyz, IN.Tbn)));
+	LightingResult lit = ComputeLighting(IN.worldPos, texNormal.xyz, IN.eyeVectorTS, IN.Tbn);
 
 	float4 emissive = Material.Emissive;
 	float4 ambient = Material.Ambient * GlobalAmbient;
@@ -341,7 +327,7 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 	return (emissive + ambient + diffuse + specular) * texColor;
 }
 
-float4 RTT_PS(RTT_PS_INPUT IN) : SV_TARGET
+float4 PS_BILL(RTT_PS_INPUT IN) : SV_TARGET
 {
 	float4 texColor = txDiffuse.Sample(samLinear, IN.Tex);
 

@@ -309,30 +309,32 @@ HRESULT InitDevice()
     textureDesc.SampleDesc.Count = 1;
     textureDesc.Usage = D3D11_USAGE_DEFAULT;
     textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-    textureDesc.CPUAccessFlags = 0;
-    textureDesc.MiscFlags = 0;
     textureDesc.SampleDesc.Count = sampleCount;
     textureDesc.SampleDesc.Quality = maxQuality;
     g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pRTTRenderTargetTexture);
-    if (FAILED(hr))
-        return hr;
+    /*for (unsigned int i = 0; i < BUFFER_COUNT; ++i)
+    {
+        g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pGBufferTexture[i]);
+    }*/
 
     D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
     renderTargetViewDesc.Format = textureDesc.Format;
     renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
-    renderTargetViewDesc.Texture2D.MipSlice = 0;
-    hr = g_pd3dDevice->CreateRenderTargetView( g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView );
-    if (FAILED(hr))
-        return hr;
+    hr = g_pd3dDevice->CreateRenderTargetView(g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView);
+    /*for (unsigned int i = 0; i < BUFFER_COUNT; ++i)
+    {
+        g_pd3dDevice->CreateRenderTargetView(g_pGBufferTexture[i], &renderTargetViewDesc, &g_pGBufferRenderTarget[i]);
+    }*/
 
     D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
     shaderResourceViewDesc.Format = textureDesc.Format;
     shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
-    shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
     shaderResourceViewDesc.Texture2D.MipLevels = 1;
-    hr = g_pd3dDevice->CreateShaderResourceView( g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView );
-    if (FAILED(hr))
-        return hr;
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView);
+    /*for (unsigned int i = 0; i < BUFFER_COUNT; ++i)
+    {
+        g_pd3dDevice->CreateShaderResourceView(g_pGBufferTexture[i], &shaderResourceViewDesc, &g_pGBufferShaderResource[i]);
+    }*/
 
     // Default scene
     // Create depth stencil texture
@@ -346,8 +348,6 @@ HRESULT InitDevice()
     descDepth.SampleDesc.Quality = maxQuality;
     descDepth.Usage = D3D11_USAGE_DEFAULT;
     descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    descDepth.CPUAccessFlags = 0;
-    descDepth.MiscFlags = 0;
     hr = g_pd3dDevice->CreateTexture2D(&descDepth, nullptr, &g_pDepthStencilTexture);
     if (FAILED(hr))
         return hr;
@@ -356,7 +356,6 @@ HRESULT InitDevice()
     D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
     descDSV.Format = descDepth.Format;
     descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
-    descDSV.Texture2D.MipSlice = 0;
     hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencilTexture, &descDSV, &g_pDepthStencilView);
     if (FAILED(hr))
         return hr;
@@ -512,17 +511,17 @@ HRESULT	InitMesh()
 	if (FAILED(hr))
 		return hr;
 
-    // Compile the RTT pixel shader
-    ID3DBlob* pPSRTTBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "RTT_PS", "ps_4_0", &pPSRTTBlob);
+    // Compile the billboarding pixel shader
+    ID3DBlob* pPSBillBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_BILL", "ps_4_0", &pPSBillBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
         return hr;
     }
-    // Create the RTT pixel shader
-    hr = g_pd3dDevice->CreatePixelShader(pPSRTTBlob->GetBufferPointer(), pPSRTTBlob->GetBufferSize(), nullptr, &g_pQuadPS);
-    pPSRTTBlob->Release();
+    // Create the billboarding pixel shader
+    hr = g_pd3dDevice->CreatePixelShader(pPSBillBlob->GetBufferPointer(), pPSBillBlob->GetBufferSize(), nullptr, &g_pBillPS);
+    pPSBillBlob->Release();
     if (FAILED(hr))
         return hr;
 
@@ -558,6 +557,7 @@ HRESULT	InitMesh()
     if (FAILED(hr))
         return hr;
 
+    // Sprites test
     for (unsigned short i = 0; i < 5; ++i)
     {
         for (unsigned short j = 0; j < 5; ++j)
@@ -569,11 +569,6 @@ HRESULT	InitMesh()
             }
         }
     }
-    /*for (unsigned short i = 0; i < g_numberOfSprites; ++i)
-    {
-        g_pSpriteArray[i].pos = XMFLOAT3( -50.0f + i, 5.0f, 0.0f );
-        g_pSpriteArray[i].tex = XMFLOAT2( 0.0f, 0.0f );
-    }*/
 
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(SCREEN_VERTEX) * g_numberOfSprites;
@@ -587,14 +582,6 @@ HRESULT	InitMesh()
         return hr;
 
 	// Create the constant buffer
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(SimpleVertex) * 24;
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    bd.CPUAccessFlags = 0;
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(WORD) * 36;        // 36 vertices needed for 12 triangles in a triangle list
-    bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    bd.CPUAccessFlags = 0;
 	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(ConstantBuffer);
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -670,7 +657,7 @@ void CleanupDevice()
     if (g_pScreenQuadVB) g_pScreenQuadVB->Release();
     if (g_pQuadLayout) g_pQuadLayout->Release();
     if (g_pQuadVS) g_pQuadVS->Release();
-    if (g_pQuadPS) g_pQuadPS->Release();
+    if (g_pBillPS) g_pBillPS->Release();
     if (g_pSpriteVertexBuffer) g_pSpriteVertexBuffer->Release();
     if (g_pSpriteLayout) g_pSpriteLayout->Release();
     if (g_GeometryBillboardShader) g_GeometryBillboardShader->Release();
@@ -756,37 +743,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
     return 0;
 }
 
-void setupLightForRender()
-{
-    Light light;
-    light.Enabled = static_cast<int>(true);
-    light.LightType = PointLight;
-    light.Color = XMFLOAT4(Colors::White);
-    light.SpotAngle = XMConvertToRadians(45.0f);
-    light.ConstantAttenuation = 1.0f;
-    light.LinearAttenuation = 1;
-    light.QuadraticAttenuation = 1;
-
-    // Set up the light
-    XMFLOAT4 LightPosition = { 0.0f, 0.0f, -3.0f, 1.0f };
-    light.Position = LightPosition;
-    XMVECTOR LightDirection = XMVectorSet(-LightPosition.x, -LightPosition.y, -LightPosition.z, 0.0f);
-    LightDirection = XMVector3Normalize(LightDirection);
-    XMStoreFloat4(&light.Direction, LightDirection);
-
-    LightPropertiesConstantBuffer lightProperties;
-    lightProperties.EyePosition = { g_Camera.GetEye().x, g_Camera.GetEye().y, g_Camera.GetEye().z, 1.0f };
-    lightProperties.Lights[0] = light;
-    g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
-
-
-    // Set up billboard
-    BillboardConstantBuffer billboardProperties;
-    billboardProperties.EyePos = { g_Camera.GetEye().x, g_Camera.GetEye().y, g_Camera.GetEye().z, 1.0f };
-    billboardProperties.UpVector = g_Camera.GetUp();
-    g_pImmediateContext->UpdateSubresource(g_pSpriteConstantBuffer, 0, nullptr, &billboardProperties, 0, 0);
-}
-
 float calculateDeltaTime()
 {
     // Update our time
@@ -847,15 +803,55 @@ void HandlePerFrameInput(float deltaTime)
     }
 }
 
+void setupLightForRender()
+{
+    Light tempLights[MAX_LIGHTS];
+    XMFLOAT4 positions[MAX_LIGHTS] = {  { 0.0f, 0.0f, -3.0f, 1.0f }
+                                        //, { 0.0f, 0.0f, 3.0f, 1.0f } 
+                                                                        };
+    for (unsigned int i = 0; i < MAX_LIGHTS; ++i)
+    {
+        tempLights[i].Enabled = static_cast<int>(true);
+        tempLights[i].LightType = PointLight;
+        tempLights[i].Color = XMFLOAT4(Colors::White);
+        tempLights[i].SpotAngle = XMConvertToRadians(45.0f);
+        tempLights[i].ConstantAttenuation = 0.4f;
+        tempLights[i].LinearAttenuation = 0.2f;
+        tempLights[i].QuadraticAttenuation = 0.1f;
+
+        // Set up the light
+        XMFLOAT4 LightPosition = positions[i];
+        tempLights[i].Position = LightPosition;
+        XMVECTOR LightDirection = XMVectorSet(-LightPosition.x, -LightPosition.y, -LightPosition.z, 0.0f);
+        LightDirection = XMVector3Normalize(LightDirection);
+        XMStoreFloat4(&tempLights[i].Direction, LightDirection);
+    }
+    LightPropertiesConstantBuffer lightProperties;
+    lightProperties.EyePosition = g_Camera.GetEye();
+    for (unsigned int i = 0; i < MAX_LIGHTS; ++i)
+    {
+        lightProperties.Lights[i] = tempLights[i];
+    }
+    g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
+
+
+    // Set up billboard
+    BillboardConstantBuffer billboardProperties;
+    billboardProperties.EyePos = g_Camera.GetEye();
+    billboardProperties.UpVector = g_Camera.GetUp();
+    g_pImmediateContext->UpdateSubresource(g_pSpriteConstantBuffer, 0, nullptr, &billboardProperties, 0, 0);
+}
+
 void DrawScene()
 {
     // Render the cube
     g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
-    g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
-
     g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+
+    g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
     g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+    g_pImmediateContext->GSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
     ID3D11Buffer* materialCB = g_GameObject.getMaterialConstantBuffer();
     g_pImmediateContext->PSSetConstantBuffers(1, 1, &materialCB);
 
@@ -872,7 +868,7 @@ void DrawScene()
 
     g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pQuadPS, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
 
     g_pImmediateContext->PSSetShaderResources(0, 1, &g_pSpriteTexture);
     g_pImmediateContext->GSSetConstantBuffers(3, 1, &g_pSpriteConstantBuffer);
@@ -883,7 +879,7 @@ void RenderScreenQuad()
 {
     // -RTT-
     g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTRenderTargetView, g_pDepthStencilView);
-    g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, Colors::OrangeRed);
+    g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, XMVECTORF32{0.24f, 0.06f, 0.0f, 1.0f});
     g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     // Draw scene to RTT target
@@ -895,7 +891,7 @@ void RenderScreenQuad()
     // New shaders
     g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
     g_pImmediateContext->GSSetShader(NULL, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pQuadPS, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
 
     // Screen quad
     UINT stride = sizeof(SCREEN_VERTEX);
@@ -952,7 +948,6 @@ void Render()
 
     // Draw functions
     DrawScene();
-
     RenderScreenQuad();
 
     // ImGui

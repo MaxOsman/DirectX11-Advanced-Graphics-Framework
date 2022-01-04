@@ -100,36 +100,6 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 0.0f) },
 		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f) },
 		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) },
-
-		/*{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },		0
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },			1
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },			2
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },			3
-
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },		4
-		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },		5
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },			6
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, -1.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },		7
-
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },		8
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },		9
-		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },		10
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(-1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },			11
-
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 1.0f) },			12
-		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 1.0f) },			13
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(0.0f, 0.0f) },			14
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(1.0f, 0.0f, 0.0f), XMFLOAT2(1.0f, 0.0f) },			15
-
-		{ XMFLOAT3(-1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 1.0f) },		16
-		{ XMFLOAT3(1.0f, -1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f) , XMFLOAT2(1.0f, 1.0f) },		17
-		{ XMFLOAT3(1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(1.0f, 0.0f) },			18
-		{ XMFLOAT3(-1.0f, 1.0f, -1.0f), XMFLOAT3(0.0f, 0.0f, -1.0f), XMFLOAT2(0.0f, 0.0f) },		19
-
-		{ XMFLOAT3(-1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 1.0f) },			20
-		{ XMFLOAT3(1.0f, -1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 1.0f) },			21
-		{ XMFLOAT3(1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(0.0f, 0.0f) },			22
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT3(0.0f, 0.0f, 1.0f), XMFLOAT2(1.0f, 0.0f) },			23*/
 	};
 
 	// Create index buffer
@@ -152,24 +122,6 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 
 		30,31,32,
 		33,34,35
-
-		/*3,1,0,
-		2,1,3,
-
-		6,4,5,
-		7,4,6,
-
-		11,9,8,
-		10,9,11,
-
-		14,12,13,
-		15,12,14,
-
-		19,17,16,
-		18,17,19,
-
-		22,20,21,
-		23,20,22*/
 	};
 
 	CalculateModelVectors(vertices, vertexCount);
@@ -201,9 +153,12 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// load and setup textures
-	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Crate_COLOR.dds", nullptr, &m_pTextureResourceView);
+	/*hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Crate_COLOR.dds", nullptr, &m_pTextureResourceView);
 	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Crate_NRM.dds", nullptr, &m_pNormalTexture);
-	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Crate_DISP.dds", nullptr, &m_pParallaxTexture);
+	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Crate_DISP.dds", nullptr, &m_pParallaxTexture);*/
+	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\color.dds", nullptr, &m_pTextureResourceView);
+	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\normals.dds", nullptr, &m_pNormalTexture);
+	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\displacement.dds", nullptr, &m_pParallaxTexture);
 	if (FAILED(hr))
 		return hr;
 
@@ -293,7 +248,7 @@ void DrawableGameObject::draw(ID3D11DeviceContext* pContext)
 	pContext->DrawIndexed(NUM_VERTICES, 0, 0);
 }
 
-// REFERENCE this has largely been modified from "Mathematics for 3D Game Programmming and Computer Graphics" by Eric Lengyel
+// REFERENCE - this has largely been modified from "Mathematics for 3D Game Programmming and Computer Graphics" by Eric Lengyel
 void DrawableGameObject::CalculateModelVectors(SimpleVertex* vertices, int vertexCount)
 {
 	int faceCount, i, index;
@@ -414,4 +369,69 @@ void DrawableGameObject::CalculateTangentBinormalLH(SimpleVertex v0, SimpleVerte
 	XMFLOAT3 normalOut;
 	XMStoreFloat3(&normalOut, e01cross);
 	normal = normalOut;
+}
+
+void DrawableGameObject::CalculateTangentBinormalRH(SimpleVertex v0, SimpleVertex v1, SimpleVertex v2, XMFLOAT3& normal, XMFLOAT3& tangent, XMFLOAT3& binormal)
+{
+	// http://softimage.wiki.softimage.com/xsidocs/tex_tangents_binormals_AboutTangentsandBinormals.html
+
+	// 1. CALCULATE THE NORMAL
+	XMVECTOR vv0 = XMLoadFloat3(&v0.Pos);
+	XMVECTOR vv1 = XMLoadFloat3(&v1.Pos);
+	XMVECTOR vv2 = XMLoadFloat3(&v2.Pos);
+
+	XMVECTOR P = vv1 - vv0;
+	XMVECTOR Q = vv2 - vv0;
+
+	XMVECTOR e01cross = XMVector3Cross(P, Q);
+	XMFLOAT3 normalOut;
+	XMStoreFloat3(&normalOut, e01cross);
+	normal = normalOut;
+
+	// 2. CALCULATE THE TANGENT from texture space
+
+	float s1 = v1.TexCoord.x - v0.TexCoord.x;
+	float t1 = v1.TexCoord.y - v0.TexCoord.y;
+	float s2 = v2.TexCoord.x - v0.TexCoord.x;
+	float t2 = v2.TexCoord.y - v0.TexCoord.y;
+
+
+	float tmp = 0.0f;
+	if (fabsf(s1 * t2 - s2 * t1) <= 0.0001f)
+	{
+		tmp = 1.0f;
+	}
+	else
+	{
+		tmp = 1.0f / (s1 * t2 - s2 * t1);
+	}
+
+	XMFLOAT3 PF3, QF3;
+	XMStoreFloat3(&PF3, P);
+	XMStoreFloat3(&QF3, Q);
+
+	tangent.x = (t2 * PF3.x - t1 * QF3.x);
+	tangent.y = (t2 * PF3.y - t1 * QF3.y);
+	tangent.z = (t2 * PF3.z - t1 * QF3.z);
+
+	tangent.x = tangent.x * tmp;
+	tangent.y = tangent.y * tmp;
+	tangent.z = tangent.z * tmp;
+
+	XMVECTOR vn = XMLoadFloat3(&normal);
+	XMVECTOR vt = XMLoadFloat3(&tangent);
+
+	// 3. CALCULATE THE BINORMAL
+	// left hand system b = t cross n (rh would be b = n cross t)
+	XMVECTOR vb = XMVector3Cross(vt, vn);
+
+	vn = XMVector3Normalize(vn);
+	vt = XMVector3Normalize(vt);
+	vb = XMVector3Normalize(vb);
+
+	XMStoreFloat3(&normal, vn);
+	XMStoreFloat3(&tangent, vt);
+	XMStoreFloat3(&binormal, vb);
+
+	return;
 }

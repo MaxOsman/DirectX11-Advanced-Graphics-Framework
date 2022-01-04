@@ -29,6 +29,8 @@ typedef vector<DrawableGameObject*> vecDrawables;
 #define WINDOW_WIDTH 960
 #define WINDOW_HEIGHT 540
 
+#define BUFFER_COUNT 3
+
 //--------------------------------------------------------------------------------------
 // Global Variables
 //--------------------------------------------------------------------------------------
@@ -69,12 +71,18 @@ ID3D11ShaderResourceView*	g_pSpriteTexture = nullptr;
 const int					g_numberOfSprites = 125;
 SCREEN_VERTEX				g_pSpriteArray[g_numberOfSprites];
 ID3D11Buffer*				g_pSpriteConstantBuffer = nullptr;
+ID3D11PixelShader*			g_pBillPS = nullptr;
 
 ID3D11Buffer*				g_pScreenQuadVB = nullptr;
 ID3D11InputLayout*			g_pQuadLayout = nullptr;
 ID3D11VertexShader*			g_pQuadVS = nullptr;
-ID3D11PixelShader*			g_pQuadPS = nullptr;
 SCREEN_VERTEX				g_ScreenQuad[4];
+
+// Deferred rendering - replaces RTT?
+//D3D11_VIEWPORT				g_pViewport;
+//ID3D11Texture2D*			g_pGBufferTexture[BUFFER_COUNT];
+//ID3D11RenderTargetView*		g_pGBufferRenderTarget[BUFFER_COUNT];
+//ID3D11ShaderResourceView*	g_pGBufferShaderResource[BUFFER_COUNT];
 
 int							g_viewWidth;
 int							g_viewHeight;

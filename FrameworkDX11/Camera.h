@@ -40,7 +40,7 @@ public:
 
 	XMFLOAT4X4 GetView() { return _view; }
 	XMFLOAT4X4 GetProjection() { return _projection; }
-	XMFLOAT3 GetEye() { return _eye; }
+	XMFLOAT4 GetEye() { return XMFLOAT4(_eye.x, _eye.y, _eye.z, 1.0f); }
 	XMFLOAT3 GetAt() { return _at; }
 	XMFLOAT4 GetUp() { return XMFLOAT4( _up.x, _up.y, _up.z, 0.0f ); }
 	float GetYaw() { return yaw; }
