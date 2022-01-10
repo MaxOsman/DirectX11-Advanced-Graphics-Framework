@@ -32,19 +32,22 @@ public:
 
 	HRESULT								initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext);
 	void								update(float t, ID3D11DeviceContext* pContext);
+	void								update(ID3D11DeviceContext* pContext);
 	void								draw(ID3D11DeviceContext* pContext);
 	void								draw(ID3D11DeviceContext* pContext, ID3D11ShaderResourceView* texture);
 	ID3D11Buffer*						getVertexBuffer() { return m_pVertexBuffer; }
 	ID3D11Buffer*						getIndexBuffer() { return m_pIndexBuffer; }
 	ID3D11ShaderResourceView**			getTextureResourceView() { return &m_pTextureResourceView; 	}
 	XMFLOAT4X4*							getTransform() { return &m_World; }
+	XMFLOAT3							getPosition() { return m_position; }
 	ID3D11SamplerState**				getTextureSamplerState() { return &m_pSamplerLinear; }
-	ID3D11Buffer*						getMaterialConstantBuffer() { return m_pMaterialConstantBuffer;}
 	void								setPosition(XMFLOAT3 position);
 	void								CalculateModelVectors(SimpleVertex* vertices, int vertexCount);
 	void								CalculateTangentBinormalLH(SimpleVertex v0, SimpleVertex v1, SimpleVertex v2, XMFLOAT3& normal, XMFLOAT3& tangent, XMFLOAT3& binormal);
 	void								CalculateTangentBinormalRH(SimpleVertex v0, SimpleVertex v1, SimpleVertex v2, XMFLOAT3& normal, XMFLOAT3& tangent, XMFLOAT3& binormal);
 	ID3D11SamplerState*					getSampler() { return m_pSamplerLinear; }
+	void								setScale(XMFLOAT3 scale) { m_scale = scale; }
+	//void								setBloom(bool bloom) { m_pIsBloom = bloom; }
 
 private:
 	
@@ -55,7 +58,12 @@ private:
 	ID3D11ShaderResourceView*			m_pNormalTexture;
 	ID3D11ShaderResourceView*			m_pParallaxTexture;
 	ID3D11SamplerState *				m_pSamplerLinear;
-	MaterialPropertiesConstantBuffer	m_material;
-	ID3D11Buffer*						m_pMaterialConstantBuffer = nullptr;
 	XMFLOAT3							m_position;
+	XMFLOAT3							m_scale = { 1.0f, 1.0f, 1.0f };
+
+	/*ID3D11ShaderResourceView*			m_pBloomTextureResourceView = nullptr;
+	ID3D11ShaderResourceView*			m_pBloomNormalTexture = nullptr;
+	ID3D11ShaderResourceView*			m_pBloomParallaxTexture = nullptr;
+
+	bool								m_pIsBloom = false;*/
 };

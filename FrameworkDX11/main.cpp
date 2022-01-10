@@ -207,8 +207,8 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
-    UINT maxQuality = 0;
-    UINT sampleCount = 1;
+    UINT maxQuality = 16;
+    UINT sampleCount = 4;
 
     // Create swap chain
     IDXGIFactory2* dxgiFactory2 = nullptr;
@@ -311,30 +311,49 @@ HRESULT InitDevice()
     textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
     textureDesc.SampleDesc.Count = sampleCount;
     textureDesc.SampleDesc.Quality = maxQuality;
-    g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pRTTRenderTargetTexture);
-    /*for (unsigned int i = 0; i < BUFFER_COUNT; ++i)
-    {
-        g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pGBufferTexture[i]);
-    }*/
+    g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pRTTTexture.texture);
+
+    // Depth mapping - texture
+    textureDesc.SampleDesc.Count = 1;
+    textureDesc.SampleDesc.Quality = 0;
+    g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pDepthTexture.texture);
+    g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pBloomTexture.texture);
+    g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pBlurTextureHorizontal.texture);
+    g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pBlurTextureVertical.texture);
+
+    // No MSAA - texture
+    g_pd3dDevice->CreateTexture2D(&textureDesc, nullptr, &g_pNoMSAARTTTexture.texture);
 
     D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc = {};
     renderTargetViewDesc.Format = textureDesc.Format;
     renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
-    hr = g_pd3dDevice->CreateRenderTargetView(g_pRTTRenderTargetTexture, &renderTargetViewDesc, &g_pRTTRenderTargetView);
-    /*for (unsigned int i = 0; i < BUFFER_COUNT; ++i)
-    {
-        g_pd3dDevice->CreateRenderTargetView(g_pGBufferTexture[i], &renderTargetViewDesc, &g_pGBufferRenderTarget[i]);
-    }*/
+    hr = g_pd3dDevice->CreateRenderTargetView(g_pRTTTexture.texture, &renderTargetViewDesc, &g_pRTTTexture.view);
+
+    // Depth mapping - target
+    renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    hr = g_pd3dDevice->CreateRenderTargetView(g_pDepthTexture.texture, &renderTargetViewDesc, &g_pDepthTexture.view);
+    hr = g_pd3dDevice->CreateRenderTargetView(g_pBloomTexture.texture, &renderTargetViewDesc, &g_pBloomTexture.view);
+    hr = g_pd3dDevice->CreateRenderTargetView(g_pBlurTextureHorizontal.texture, &renderTargetViewDesc, &g_pBlurTextureHorizontal.view);
+    hr = g_pd3dDevice->CreateRenderTargetView(g_pBlurTextureVertical.texture, &renderTargetViewDesc, &g_pBlurTextureVertical.view);
+
+    // No MSAA - target
+    hr = g_pd3dDevice->CreateRenderTargetView(g_pNoMSAARTTTexture.texture, &renderTargetViewDesc, &g_pNoMSAARTTTexture.view);
 
     D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
     shaderResourceViewDesc.Format = textureDesc.Format;
     shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
     shaderResourceViewDesc.Texture2D.MipLevels = 1;
-    hr = g_pd3dDevice->CreateShaderResourceView(g_pRTTRenderTargetTexture, &shaderResourceViewDesc, &g_pRTTShaderResourceView);
-    /*for (unsigned int i = 0; i < BUFFER_COUNT; ++i)
-    {
-        g_pd3dDevice->CreateShaderResourceView(g_pGBufferTexture[i], &shaderResourceViewDesc, &g_pGBufferShaderResource[i]);
-    }*/
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pRTTTexture.texture, &shaderResourceViewDesc, &g_pRTTTexture.resource);
+
+    // Depth mapping - resource
+    shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pDepthTexture.texture, &shaderResourceViewDesc, &g_pDepthTexture.resource);
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pBloomTexture.texture, &shaderResourceViewDesc, &g_pBloomTexture.resource);
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pBlurTextureHorizontal.texture, &shaderResourceViewDesc, &g_pBlurTextureHorizontal.resource);
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pBlurTextureVertical.texture, &shaderResourceViewDesc, &g_pBlurTextureVertical.resource);
+
+    // No MSAA - resource
+    hr = g_pd3dDevice->CreateShaderResourceView(g_pNoMSAARTTTexture.texture, &shaderResourceViewDesc, &g_pNoMSAARTTTexture.resource);
 
     // Default scene
     // Create depth stencil texture
@@ -349,16 +368,21 @@ HRESULT InitDevice()
     descDepth.Usage = D3D11_USAGE_DEFAULT;
     descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     hr = g_pd3dDevice->CreateTexture2D(&descDepth, nullptr, &g_pDepthStencilTexture);
-    if (FAILED(hr))
-        return hr;
+
+    // No MSAA - stencil
+    descDepth.SampleDesc.Count = 1;
+    descDepth.SampleDesc.Quality = 0;
+    hr = g_pd3dDevice->CreateTexture2D(&descDepth, nullptr, &g_pNoMSAADepthStencilTexture);
 
     // Create the depth stencil view
     D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
     descDSV.Format = descDepth.Format;
     descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
     hr = g_pd3dDevice->CreateDepthStencilView(g_pDepthStencilTexture, &descDSV, &g_pDepthStencilView);
-    if (FAILED(hr))
-        return hr;
+    
+    // No MSAA - stencil view
+    descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    hr = g_pd3dDevice->CreateDepthStencilView(g_pNoMSAADepthStencilTexture, &descDSV, &g_pNoMSAARTTStencilView);
 
     // Setup the viewport
     D3D11_VIEWPORT vp;
@@ -438,6 +462,7 @@ HRESULT	InitMesh()
         return hr;
     }
 
+
     // Set up geometry shader
     ID3DBlob* pGSBlob = nullptr;
     hr = CompileShaderFromFile(L"shaderNormal.fx", "GS", "gs_4_0", &pGSBlob);
@@ -463,6 +488,22 @@ HRESULT	InitMesh()
     if (FAILED(hr))
     {
         pGSBillBlob->Release();
+        return hr;
+    }
+
+    // Compile the depth geometry shader
+    ID3DBlob* pDepthGSBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS_Depth", "gs_4_0", &pDepthGSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the depth geometry shader
+    hr = g_pd3dDevice->CreateGeometryShader(pDepthGSBlob->GetBufferPointer(), pDepthGSBlob->GetBufferSize(), nullptr, &g_pDepthGS);
+    if (FAILED(hr))
+    {
+        pDepthGSBlob->Release();
         return hr;
     }
 
@@ -525,6 +566,62 @@ HRESULT	InitMesh()
     if (FAILED(hr))
         return hr;
 
+    // Compile the depth pixel shader
+    ID3DBlob* pPSDepthBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Depth", "ps_4_0", &pPSDepthBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the depth pixel shader
+    hr = g_pd3dDevice->CreatePixelShader(pPSDepthBlob->GetBufferPointer(), pPSDepthBlob->GetBufferSize(), nullptr, &g_pDepthPS);
+    pPSDepthBlob->Release();
+    if (FAILED(hr))
+        return hr;
+
+    // Compile the tint pixel shader
+    ID3DBlob* pPSTintBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Tint", "ps_4_0", &pPSTintBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the tint pixel shader
+    hr = g_pd3dDevice->CreatePixelShader(pPSTintBlob->GetBufferPointer(), pPSTintBlob->GetBufferSize(), nullptr, &g_pTintPS);
+    pPSTintBlob->Release();
+    if (FAILED(hr))
+        return hr;
+
+    // Compile the blur pixel shader
+    ID3DBlob* pPSBlurBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Blur", "ps_4_0", &pPSBlurBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the blur pixel shader
+    hr = g_pd3dDevice->CreatePixelShader(pPSBlurBlob->GetBufferPointer(), pPSBlurBlob->GetBufferSize(), nullptr, &g_pBlurPS);
+    pPSBlurBlob->Release();
+    if (FAILED(hr))
+        return hr;
+
+    // Compile the RTT pixel shader
+    ID3DBlob* pPSRTTBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "RTT_PS", "ps_4_0", &pPSRTTBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the RTT pixel shader
+    hr = g_pd3dDevice->CreatePixelShader(pPSRTTBlob->GetBufferPointer(), pPSRTTBlob->GetBufferSize(), nullptr, &g_pQuadPS);
+    pPSRTTBlob->Release();
+    if (FAILED(hr))
+        return hr;
+
 
     hr = CreateDDSTextureFromFile(g_pd3dDevice, L"Resources\\stone.dds", nullptr, &g_pSpriteTexture);
 
@@ -578,8 +675,6 @@ HRESULT	InitMesh()
     // Create sprite vertex buffer
     InitData.pSysMem = g_pSpriteArray;
     hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pSpriteVertexBuffer);
-    if (FAILED(hr))
-        return hr;
 
 	// Create the constant buffer
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -587,8 +682,6 @@ HRESULT	InitMesh()
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
 	hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pConstantBuffer);
-	if (FAILED(hr))
-		return hr;
 
 	// Create the light constant buffer
 	bd.Usage = D3D11_USAGE_DEFAULT;
@@ -596,8 +689,6 @@ HRESULT	InitMesh()
 	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	bd.CPUAccessFlags = 0;
 	hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pLightConstantBuffer);
-	if (FAILED(hr))
-		return hr;
 
     // Create the billboard constant buffer
     bd.Usage = D3D11_USAGE_DEFAULT;
@@ -605,8 +696,20 @@ HRESULT	InitMesh()
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = 0;
     hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pSpriteConstantBuffer);
-    if (FAILED(hr))
-        return hr;
+
+    // Create the material constant buffer
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(MaterialPropertiesConstantBuffer);
+    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bd.CPUAccessFlags = 0;
+    hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pMaterialConstantBuffer);
+
+    // Create the blur constant buffer
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(BlurProperties);
+    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    bd.CPUAccessFlags = 0;
+    hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pBlurConstantBuffer);
 
 	return hr;
 }
@@ -617,6 +720,10 @@ HRESULT	InitMesh()
 HRESULT	InitWorld(int width, int height)
 {
     g_Camera = Camera(WINDOW_HEIGHT, WINDOW_WIDTH, XMFLOAT3(0.0f, 0.0f, -3.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+
+    g_GameObject.setPosition({ 0.0f, 0.0f, 0.0f });
+
+    g_pLightPos = { 0.0f, 0.0f, -2.0f, 0.0f };
 
 	return S_OK;
 }
@@ -650,19 +757,45 @@ void CleanupDevice()
     if( g_pSwapChain ) g_pSwapChain->Release();
     if( g_pImmediateContext1 ) g_pImmediateContext1->Release();
     if( g_pImmediateContext ) g_pImmediateContext->Release();
-    if (g_pRTTRenderTargetTexture) g_pRTTRenderTargetTexture->Release();
-    if (g_pRTTRenderTargetView) g_pRTTRenderTargetView->Release();
-    if (g_pRTTShaderResourceView) g_pRTTShaderResourceView->Release();
+    if (g_pRTTTexture.texture) g_pRTTTexture.texture->Release();
+    if (g_pRTTTexture.view) g_pRTTTexture.view->Release();
+    if (g_pRTTTexture.resource) g_pRTTTexture.resource->Release();
     if (g_pRTTStencilView) g_pRTTStencilView->Release();
     if (g_pScreenQuadVB) g_pScreenQuadVB->Release();
     if (g_pQuadLayout) g_pQuadLayout->Release();
     if (g_pQuadVS) g_pQuadVS->Release();
+    if (g_pQuadPS) g_pQuadPS->Release();
     if (g_pBillPS) g_pBillPS->Release();
     if (g_pSpriteVertexBuffer) g_pSpriteVertexBuffer->Release();
     if (g_pSpriteLayout) g_pSpriteLayout->Release();
     if (g_GeometryBillboardShader) g_GeometryBillboardShader->Release();
     if (g_pSpriteTexture) g_pSpriteTexture->Release();
     if (g_pSpriteConstantBuffer) g_pSpriteConstantBuffer->Release();
+    if (g_pDepthTexture.texture) g_pDepthTexture.texture->Release();
+    if (g_pDepthTexture.view) g_pDepthTexture.view->Release();
+    if (g_pDepthTexture.resource) g_pDepthTexture.resource->Release();
+    if (g_pDepthGS) g_pDepthGS->Release();
+    if (g_pDepthPS) g_pDepthPS->Release();
+    if (g_pNoMSAARTTTexture.texture) g_pNoMSAARTTTexture.texture->Release();
+    if (g_pNoMSAARTTTexture.view) g_pNoMSAARTTTexture.view->Release();
+    if (g_pNoMSAARTTTexture.resource) g_pNoMSAARTTTexture.resource->Release();
+    if (g_pNoMSAARTTStencilView) g_pNoMSAARTTStencilView->Release();
+    if (g_pNoMSAADepthStencilTexture) g_pNoMSAADepthStencilTexture->Release();
+    if (g_pTintPS) g_pTintPS->Release();
+    if (g_pMaterialConstantBuffer) g_pMaterialConstantBuffer->Release();
+
+    if (g_pBloomTexture.texture) g_pBloomTexture.texture->Release();
+    if (g_pBloomTexture.view) g_pBloomTexture.view->Release();
+    if (g_pBloomTexture.resource) g_pBloomTexture.resource->Release();
+    if (g_pBlurTextureHorizontal.texture) g_pBlurTextureHorizontal.texture->Release();
+    if (g_pBlurTextureHorizontal.view) g_pBlurTextureHorizontal.view->Release();
+    if (g_pBlurTextureHorizontal.resource) g_pBlurTextureHorizontal.resource->Release();
+    if (g_pBlurTextureVertical.texture) g_pBlurTextureVertical.texture->Release();
+    if (g_pBlurTextureVertical.view) g_pBlurTextureVertical.view->Release();
+    if (g_pBlurTextureVertical.resource) g_pBlurTextureVertical.resource->Release();
+
+    if (g_pBlurPS) g_pBlurPS->Release();
+    if (g_pBlurConstantBuffer) g_pBlurConstantBuffer->Release();
 
     ID3D11Debug* debugDevice = nullptr;
     g_pd3dDevice->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&debugDevice));
@@ -671,7 +804,8 @@ void CleanupDevice()
     if (g_pd3dDevice) g_pd3dDevice->Release();
 
     // handy for finding dx memory leaks
-    debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+    if(debugDevice)
+        debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 
     if (debugDevice)
         debugDevice->Release();
@@ -805,60 +939,59 @@ void HandlePerFrameInput(float deltaTime)
 
 void setupLightForRender()
 {
-    Light tempLights[MAX_LIGHTS];
-    XMFLOAT4 positions[MAX_LIGHTS] = {  { 0.0f, 0.0f, -3.0f, 1.0f }
-                                        //, { 0.0f, 0.0f, 3.0f, 1.0f } 
-                                                                        };
-    for (unsigned int i = 0; i < MAX_LIGHTS; ++i)
-    {
-        tempLights[i].Enabled = static_cast<int>(true);
-        tempLights[i].LightType = PointLight;
-        tempLights[i].Color = XMFLOAT4(Colors::White);
-        tempLights[i].SpotAngle = XMConvertToRadians(45.0f);
-        tempLights[i].ConstantAttenuation = 0.4f;
-        tempLights[i].LinearAttenuation = 0.2f;
-        tempLights[i].QuadraticAttenuation = 0.1f;
-
-        // Set up the light
-        XMFLOAT4 LightPosition = positions[i];
-        tempLights[i].Position = LightPosition;
-        XMVECTOR LightDirection = XMVectorSet(-LightPosition.x, -LightPosition.y, -LightPosition.z, 0.0f);
-        LightDirection = XMVector3Normalize(LightDirection);
-        XMStoreFloat4(&tempLights[i].Direction, LightDirection);
-    }
     LightPropertiesConstantBuffer lightProperties;
-    lightProperties.EyePosition = g_Camera.GetEye();
-    for (unsigned int i = 0; i < MAX_LIGHTS; ++i)
-    {
-        lightProperties.Lights[i] = tempLights[i];
-    }
-    g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
 
+    lightProperties.EyePosition = g_Camera.GetEye();
+    lightProperties.Lights[0].Enabled = static_cast<int>(true);
+    lightProperties.Lights[0].LightType = PointLight;
+    lightProperties.Lights[0].Color = XMFLOAT4(Colors::White);
+    lightProperties.Lights[0].SpotAngle = XMConvertToRadians(45.0f);
+    lightProperties.Lights[0].ConstantAttenuation = 0.5;
+    lightProperties.Lights[0].LinearAttenuation = 0.5;
+    lightProperties.Lights[0].QuadraticAttenuation = 0.5;
+    lightProperties.Lights[0].Position = { g_pLightPos.x + guiLightX, g_pLightPos.y + guiLightY, g_pLightPos.z + guiLightZ, 0.0f };
+    XMVECTOR LightDirection = XMVectorSet(-g_pLightPos.x + guiLightX, -g_pLightPos.y + guiLightY, -g_pLightPos.z + guiLightZ, 0.0f);
+    LightDirection = XMVector3Normalize(LightDirection);
+    XMStoreFloat4(&lightProperties.Lights[0].Direction, LightDirection);
+
+    g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
 
     // Set up billboard
     BillboardConstantBuffer billboardProperties;
     billboardProperties.EyePos = g_Camera.GetEye();
     billboardProperties.UpVector = g_Camera.GetUp();
     g_pImmediateContext->UpdateSubresource(g_pSpriteConstantBuffer, 0, nullptr, &billboardProperties, 0, 0);
+
+    // Materials
+    MaterialPropertiesConstantBuffer materialProperties;
+    materialProperties.Material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+    materialProperties.Material.Specular = XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f);
+    materialProperties.Material.SpecularPower = 32.0f;
+    materialProperties.Material.UseTexture = materialSelection;
+    g_pImmediateContext->UpdateSubresource(g_pMaterialConstantBuffer, 0, nullptr, &materialProperties, 0, 0);
+    g_pImmediateContext->PSSetConstantBuffers(1, 1, &g_pMaterialConstantBuffer);
+
+    // Blur
+    BlurProperties blurProps;
+    blurProps.isHorizontal = 0;
+    blurProps.mouseChange = g_Camera.GetChange();
+    blurProps.Padding = 0;
+    g_pImmediateContext->UpdateSubresource(g_pBlurConstantBuffer, 0, nullptr, &blurProps, 0, 0);
+    g_pImmediateContext->PSSetConstantBuffers(4, 1, &g_pBlurConstantBuffer);
 }
 
-void DrawScene()
+void DrawScene(ConstantBuffer* cb)
 {
-    // Render the cube
-    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
-
-    g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
-    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
-    g_pImmediateContext->GSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
-    ID3D11Buffer* materialCB = g_GameObject.getMaterialConstantBuffer();
-    g_pImmediateContext->PSSetConstantBuffers(1, 1, &materialCB);
-
-    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+    // Rendering
+    XMMATRIX mGO = XMLoadFloat4x4(g_GameObject.getTransform());
+    const XMVECTOR pos = XMLoadFloat4(&g_pLightPos);
+    cb->mWorld = XMMatrixTranspose(mGO);
+    g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, cb, 0, 0);
     g_GameObject.draw(g_pImmediateContext);
+}
 
-    // Render the sprites
+void DrawSceneSprites()
+{
     UINT stride = sizeof(SCREEN_VERTEX);
     UINT offset = 0;
     ID3D11Buffer* pSpriteBuffers[1] = { g_pSpriteVertexBuffer };
@@ -866,24 +999,107 @@ void DrawScene()
     g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
     g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
-    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
-
     g_pImmediateContext->PSSetShaderResources(0, 1, &g_pSpriteTexture);
     g_pImmediateContext->GSSetConstantBuffers(3, 1, &g_pSpriteConstantBuffer);
     g_pImmediateContext->Draw(g_numberOfSprites, 0);
 }
 
-void RenderScreenQuad()
+void Bloom(ConstantBuffer* cb)
 {
-    // -RTT-
-    g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTRenderTargetView, g_pDepthStencilView);
-    g_pImmediateContext->ClearRenderTargetView(g_pRTTRenderTargetView, XMVECTORF32{0.24f, 0.06f, 0.0f, 1.0f});
+    /***********************************************
+    MARKING SCHEME: Advanced graphics techniques
+    DESCRIPTION: Gaussian blur, Motion blur
+    ***********************************************/
+
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pBloomTexture.view, g_pNoMSAARTTStencilView);
+    g_pImmediateContext->ClearRenderTargetView(g_pBloomTexture.view, Colors::MidnightBlue);
+    g_pImmediateContext->ClearDepthStencilView(g_pNoMSAARTTStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+    // Draw scene to target
+    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+
+    DrawScene(cb);
+
+    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
+
+    DrawSceneSprites();
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pBlurTextureHorizontal.view, g_pNoMSAARTTStencilView);
+    g_pImmediateContext->ClearRenderTargetView(g_pBlurTextureHorizontal.view, Colors::Black);
+    g_pImmediateContext->ClearDepthStencilView(g_pNoMSAARTTStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->GSSetShader(NULL, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pBlurPS, nullptr, 0);
+
+    // Render to quad for 1st (horizontal) pass
+    UINT stride = sizeof(SCREEN_VERTEX);
+    UINT offset = 0;
+    ID3D11Buffer* pBuffers[1] = { g_pScreenQuadVB };
+    g_pImmediateContext->IASetVertexBuffers(0, 1, pBuffers, &stride, &offset);
+
+    g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
+    g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pBloomTexture.resource);
+
+    g_pImmediateContext->Draw(4, 0);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pBlurTextureVertical.view, g_pNoMSAARTTStencilView);
+    g_pImmediateContext->ClearRenderTargetView(g_pBlurTextureVertical.view, Colors::Black);
+    g_pImmediateContext->ClearDepthStencilView(g_pNoMSAARTTStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+    BlurProperties blurProps;
+    blurProps.isHorizontal = 0;
+    blurProps.mouseChange = g_Camera.GetChange();
+    blurProps.Padding = 0;
+    g_pImmediateContext->UpdateSubresource(g_pBlurConstantBuffer, 0, nullptr, &blurProps, 0, 0);
+
+    // Render to quad for 2nd (vertical) pass
+    stride = sizeof(SCREEN_VERTEX);
+    offset = 0;
+    pBuffers[0] = { g_pScreenQuadVB };
+    g_pImmediateContext->IASetVertexBuffers(0, 1, pBuffers, &stride, &offset);
+
+    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pBlurTextureHorizontal.resource);
+
+    g_pImmediateContext->Draw(4, 0);
+
+    ID3D11ShaderResourceView* nullSRV = { nullptr };
+    g_pImmediateContext->PSSetShaderResources(0, 1, &nullSRV);
+}
+
+void RenderScreenQuad(ConstantBuffer* cb)
+{
+    /***********************************************
+    MARKING SCHEME: Special effects pipeline
+    DESCRIPTION: Render to texture implemented
+    ***********************************************/
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pRTTTexture.view, g_pDepthStencilView);
+    g_pImmediateContext->ClearRenderTargetView(g_pRTTTexture.view, Colors::MidnightBlue);
     g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     // Draw scene to RTT target
-    DrawScene();
+    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+
+    DrawScene(cb);
+
+    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
+
+    DrawSceneSprites();
 
     // Reset target
     g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
@@ -891,9 +1107,20 @@ void RenderScreenQuad()
     // New shaders
     g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
     g_pImmediateContext->GSSetShader(NULL, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
+    if (guiSelection == 2)
+    {
+        // Inverse tint
+        g_pImmediateContext->PSSetShader(g_pTintPS, nullptr, 0);
+    }
+    else
+    {
+        g_pImmediateContext->PSSetShader(g_pQuadPS, nullptr, 0);
+    }
 
-    // Screen quad
+    /***********************************************
+    MARKING SCHEME: Special effects pipeline
+    DESCRIPTION: Render of texture to full screen quad
+    ***********************************************/
     UINT stride = sizeof(SCREEN_VERTEX);
     UINT offset = 0;
     ID3D11Buffer* pBuffers[1] = { g_pScreenQuadVB };
@@ -902,11 +1129,51 @@ void RenderScreenQuad()
     g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
     g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pRTTShaderResourceView);
+    if (guiSelection == 1)
+    {
+        // Depth rendering
+        ID3D11ShaderResourceView* nullSRV = { nullptr };
+        g_pImmediateContext->PSSetShaderResources(3, 1, &nullSRV);
+        g_pImmediateContext->PSSetShaderResources(0, 1, &g_pDepthTexture.resource);
+    }
+    else
+    {
+        /***********************************************
+        MARKING SCHEME: Advanced graphics techniques
+        DESCRIPTION: MSAA
+        ***********************************************/
+        g_pImmediateContext->ResolveSubresource(g_pNoMSAARTTTexture.texture, 0, g_pRTTTexture.texture, 
+                                                0, DXGI_FORMAT_R32G32B32A32_FLOAT);
+        g_pImmediateContext->PSSetShaderResources(0, 1, &g_pNoMSAARTTTexture.resource);
+        if (guiMotionBlur)
+        {
+            g_pImmediateContext->PSSetShaderResources(0, 1, &g_pBlurTextureVertical.resource);
+        }
+    }
+    
     g_pImmediateContext->Draw(4, 0);
     ID3D11ShaderResourceView* nullSRV = { nullptr };
     g_pImmediateContext->PSSetShaderResources(0, 1, &nullSRV);
-    //g_pImmediateContext->GSSetShaderResources(3, 1, &nullSRV);
+    g_pImmediateContext->PSSetShaderResources(3, 1, &nullSRV);
+}
+
+void DepthMap(ConstantBuffer* cb)
+{
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pDepthTexture.view, g_pNoMSAARTTStencilView);
+    g_pImmediateContext->ClearRenderTargetView(g_pDepthTexture.view, Colors::Black);
+    g_pImmediateContext->ClearDepthStencilView(g_pNoMSAARTTStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_pDepthGS, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pDepthPS, nullptr, 0);
+
+    g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
+
+    DrawScene(cb);
+
+    g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
+
+    DrawSceneSprites();
 }
 
 //--------------------------------------------------------------------------------------
@@ -918,37 +1185,56 @@ void Render()
     if (t == 0.0f)
         return;
 
-    // Clear the back buffer
-    g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, Colors::MidnightBlue);
-
-    // Clear the depth buffer to 1.0 (max depth)
-    g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-    // Update the cube transform, material etc. 
-    g_GameObject.update(t, g_pImmediateContext);
+    // Update the cube transform, material etc.
+    float tempT = (guiRotation ? t : 0);
+    g_GameObject.update(tempT, g_pImmediateContext);
     g_Camera.Update(g_hWnd);
     HandlePerFrameInput(t);
 
     // Get the game object world transform
-    XMMATRIX mGO = XMLoadFloat4x4(g_GameObject.getTransform());
+    XMFLOAT4X4 v = g_Camera.GetView();
+    XMFLOAT4X4 p = g_Camera.GetProjection();
 
     // Store this and the view / projection in a constant buffer for the vertex shader to use
     ConstantBuffer cb1;
-    cb1.mWorld = XMMatrixTranspose(mGO);
-    XMFLOAT4X4 v = g_Camera.GetView();
-    XMFLOAT4X4 p = g_Camera.GetProjection();
+    cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
     cb1.mView = XMMatrixTranspose(XMLoadFloat4x4(&v));
     cb1.mProjection = XMMatrixTranspose(XMLoadFloat4x4(&p));
-    cb1.vOutputColor = XMFLOAT4(0, 0, 0, 0);
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
     setupLightForRender();
 
-    g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+    g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
+    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+    g_pImmediateContext->GSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
 
     // Draw functions
-    DrawScene();
-    RenderScreenQuad();
+    if (guiMotionBlur)
+    {
+        Bloom(&cb1);
+    }
+    DepthMap(&cb1);
+
+    g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+    // Clear the back buffer
+    g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, Colors::MidnightBlue);
+    g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+
+    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+
+    DrawScene(&cb1);
+
+    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
+
+    DrawSceneSprites();
+
+    RenderScreenQuad(&cb1);
 
     // ImGui
     ImGui_ImplDX11_NewFrame();
@@ -956,8 +1242,17 @@ void Render()
     ImGui::NewFrame();
 
     // The window
-    //ImGui::Begin("Test");
-    //ImGui::End();
+    ImGui::Begin("Options");
+    static const char* items[]{ "Diffuse", "Normals", "Parallax", "Parallax Occlusion", "Self-Shadowing POM"};
+    ImGui::ListBox("Shading", &materialSelection, items, ARRAYSIZE(items));
+    static const char* items2[]{ "Default", "Depth Render", "Invert Colours" };
+    ImGui::ListBox("Render Mode", &guiSelection, items2, ARRAYSIZE(items2));
+    ImGui::SliderFloat("Light X Pos", &guiLightX, -3.0f, 3.0f);
+    ImGui::SliderFloat("Light Y Pos", &guiLightY, -3.0f, 3.0f);
+    ImGui::SliderFloat("Light Z Pos", &guiLightZ, -3.0f, 3.0f);
+    ImGui::Checkbox("Enable Motion Blur", &guiMotionBlur);
+    ImGui::Checkbox("Enable Rotation", &guiRotation);
+    ImGui::End();
 
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

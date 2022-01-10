@@ -10,6 +10,7 @@
 #include "DDSTextureLoader.h"
 #include "resource.h"
 #include "Math.h"
+#include "Debug.h"
 
 using namespace DirectX;
 
@@ -32,6 +33,10 @@ private:
 
 	bool isActive = false;
 
+	Debug						g_Debug;
+
+	XMFLOAT2 _mouseChange;
+
 public:
 	Camera() {}
 	Camera(int windowHeight, int windowWidth, XMFLOAT3 eye, XMFLOAT3 at, XMFLOAT3 up);
@@ -45,6 +50,7 @@ public:
 	XMFLOAT4 GetUp() { return XMFLOAT4( _up.x, _up.y, _up.z, 0.0f ); }
 	float GetYaw() { return yaw; }
 	float GetPitch() { return pitch; }
+	XMFLOAT2 GetChange() { return _mouseChange; }
 	
 	void Reshape(UINT windowWidth, UINT windowHeight, FLOAT nearDepth, FLOAT farDepth);
 	void SetEye(XMFLOAT3 e) { _eye = e; }

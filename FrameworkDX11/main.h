@@ -26,10 +26,8 @@ using namespace std;
 
 typedef vector<DrawableGameObject*> vecDrawables;
 
-#define WINDOW_WIDTH 960
-#define WINDOW_HEIGHT 540
-
-#define BUFFER_COUNT 3
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -56,12 +54,16 @@ ID3D11GeometryShader*		g_GeometryShader = nullptr;
 ID3D11InputLayout*			g_pVertexLayout = nullptr;
 ID3D11Buffer*				g_pConstantBuffer = nullptr;
 ID3D11Buffer*				g_pLightConstantBuffer = nullptr;
+ID3D11Buffer*				g_pMaterialConstantBuffer = nullptr;
 
 // RTT
-ID3D11Texture2D*			g_pRTTRenderTargetTexture = nullptr;
-ID3D11RenderTargetView*		g_pRTTRenderTargetView = nullptr;
-ID3D11ShaderResourceView*	g_pRTTShaderResourceView = nullptr;
+TextureSet					g_pRTTTexture;
 ID3D11DepthStencilView*		g_pRTTStencilView = nullptr;
+
+// No MSAA
+TextureSet					g_pNoMSAARTTTexture;
+ID3D11DepthStencilView*		g_pNoMSAARTTStencilView = nullptr;
+ID3D11Texture2D*			g_pNoMSAADepthStencilTexture = nullptr;
 
 // Sprites
 ID3D11GeometryShader*		g_GeometryBillboardShader = nullptr;
@@ -76,13 +78,23 @@ ID3D11PixelShader*			g_pBillPS = nullptr;
 ID3D11Buffer*				g_pScreenQuadVB = nullptr;
 ID3D11InputLayout*			g_pQuadLayout = nullptr;
 ID3D11VertexShader*			g_pQuadVS = nullptr;
+ID3D11PixelShader*			g_pQuadPS = nullptr;
 SCREEN_VERTEX				g_ScreenQuad[4];
 
-// Deferred rendering - replaces RTT?
-//D3D11_VIEWPORT				g_pViewport;
-//ID3D11Texture2D*			g_pGBufferTexture[BUFFER_COUNT];
-//ID3D11RenderTargetView*		g_pGBufferRenderTarget[BUFFER_COUNT];
-//ID3D11ShaderResourceView*	g_pGBufferShaderResource[BUFFER_COUNT];
+// Depth Mapping
+TextureSet					g_pDepthTexture;
+ID3D11GeometryShader*		g_pDepthGS = nullptr;
+ID3D11PixelShader*			g_pDepthPS = nullptr;
+
+ID3D11PixelShader*			g_pTintPS = nullptr;
+
+// Bloom
+TextureSet					g_pBloomTexture;
+TextureSet					g_pBlurTextureHorizontal;
+TextureSet					g_pBlurTextureVertical;
+//ID3D11PixelShader*			g_pBloomPS = nullptr;
+ID3D11PixelShader*			g_pBlurPS = nullptr;
+ID3D11Buffer*				g_pBlurConstantBuffer = nullptr;
 
 int							g_viewWidth;
 int							g_viewHeight;
@@ -90,6 +102,18 @@ int							g_viewHeight;
 DrawableGameObject			g_GameObject;
 Camera						g_Camera;
 Debug						g_Debug;
+XMFLOAT4					g_pLightPos;
+
+// ImGui
+int							guiSelection = 0;
+int							materialSelection = 0;
+bool						guiRotation = true;
+bool						guiMotionBlur = false;
+float						guiLightX = 0.0f;
+float						guiLightY = 0.0f;
+float						guiLightZ = 0.0f;
+
+MaterialPropertiesConstantBuffer	g_pMaterial;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations

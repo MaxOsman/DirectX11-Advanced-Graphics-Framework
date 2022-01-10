@@ -46,10 +46,6 @@ void DrawableGameObject::cleanup()
 	if (m_pSamplerLinear)
 		m_pSamplerLinear->Release();
 	m_pSamplerLinear = nullptr;
-
-	if (m_pMaterialConstantBuffer)
-		m_pMaterialConstantBuffer->Release();
-	m_pMaterialConstantBuffer = nullptr;
 }
 
 HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext)
@@ -153,9 +149,6 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	// load and setup textures
-	/*hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Crate_COLOR.dds", nullptr, &m_pTextureResourceView);
-	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Crate_NRM.dds", nullptr, &m_pNormalTexture);
-	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Crate_DISP.dds", nullptr, &m_pParallaxTexture);*/
 	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\color.dds", nullptr, &m_pTextureResourceView);
 	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\normals.dds", nullptr, &m_pNormalTexture);
 	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\displacement.dds", nullptr, &m_pParallaxTexture);
@@ -173,20 +166,6 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	hr = pd3dDevice->CreateSamplerState(&sampDesc, &m_pSamplerLinear);
 
-	m_material.Material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	m_material.Material.Specular = XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f);
-	m_material.Material.SpecularPower = 32.0f;
-	m_material.Material.UseTexture = true;
-
-	// Create the material constant buffer
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(MaterialPropertiesConstantBuffer);
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bd.CPUAccessFlags = 0;
-	hr = pd3dDevice->CreateBuffer(&bd, nullptr, &m_pMaterialConstantBuffer);
-	if (FAILED(hr))
-		return hr;
-
 	return hr;
 }
 
@@ -203,11 +182,21 @@ void DrawableGameObject::update(float t, ID3D11DeviceContext* pContext)
 	// Cube:  Rotate around origin
 	XMMATRIX mSpin = XMMatrixRotationY(cummulativeTime);
 
-	XMMATRIX mTranslate = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
-	XMMATRIX world = mTranslate * mSpin;
+	XMMATRIX mTranslate = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
+	XMMATRIX mScale = XMMatrixScaling(m_scale.x, m_scale.y, m_scale.z);
+	XMMATRIX world = mScale * mSpin * mTranslate;
 	XMStoreFloat4x4(&m_World, world);
+}
 
-	pContext->UpdateSubresource(m_pMaterialConstantBuffer, 0, nullptr, &m_material, 0, 0);
+void DrawableGameObject::update(ID3D11DeviceContext* pContext)
+{
+	// Cube:  Rotate around origin
+	XMMATRIX mSpin = XMMatrixRotationY(0);
+
+	XMMATRIX mTranslate = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
+	XMMATRIX mScale = XMMatrixScaling(m_scale.x, m_scale.y, m_scale.z);
+	XMMATRIX world = mScale * mSpin * mTranslate;
+	XMStoreFloat4x4(&m_World, world);
 }
 
 void DrawableGameObject::draw(ID3D11DeviceContext* pContext, ID3D11ShaderResourceView* texture)

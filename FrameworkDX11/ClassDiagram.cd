@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="DrawableGameObject">
+    <Position X="2.75" Y="2.25" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>QBASIAAAACsACGAAABIAQAICAAAFBCBKAAAAAIAEEAA=</HashCode>
+      <FileName>DrawableGameObject.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Camera">
+    <Position X="6.25" Y="2.25" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AQwDAwCBAQAAQEgAAAAABBIAEB4AAEQAACBJAYIAQAI=</HashCode>
+      <FileName>Camera.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Debug">
+    <Position X="9.25" Y="4.75" Width="1.75" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
+      <FileName>Debug.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="SimpleVertex">
+    <Position X="9.25" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAACAAAAAAIAAAAAAACIAAACAAAAAAAAAAA=</HashCode>
+      <FileName>DrawableGameObject.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="ConstantBuffer">
+    <Position X="11.75" Y="5.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACAAgAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="SCREEN_VERTEX">
+    <Position X="13.75" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAIAAAIAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="_Material">
+    <Position X="11.75" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAgAAAAACgAAAAAAAAAAAAAAACIAAEQAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="MaterialPropertiesConstantBuffer">
+    <Position X="11.75" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="BlurProperties">
+    <Position X="15.75" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAIAAACAAAAAAIAAAAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="TextureSet">
+    <Position X="15.75" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAACAAAAAAAABAAAAAAgAAAQAAAAAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Light">
+    <Position X="13.75" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAACAAAAAAAIAgACAAAgAAACABAAAAgAIAgCAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="LightPropertiesConstantBuffer">
+    <Position X="15.75" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAQAAEAAAAgAAAAAAAAAgAAAAAAAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="BillboardConstantBuffer">
+    <Position X="13.75" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Typedef Name="vecDrawables" Collapsed="true">
+    <Position X="9.5" Y="7" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>main.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Enum Name="DirectX::DDS_ALPHA_MODE">
+    <Position X="9.5" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAIAAAAAAAAAAAAAAAAAACAAAAAQAAAQAAAAAAAAABA=</HashCode>
+      <FileName>DDSTextureLoader.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="LightType">
+    <Position X="11.75" Y="9.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAQAAAABAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAA=</HashCode>
+      <FileName>structures.h</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

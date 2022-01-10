@@ -29,7 +29,7 @@ struct _Material
 		, Diffuse(1.0f, 1.0f, 1.0f, 1.0f)
 		, Specular(1.0f, 1.0f, 1.0f, 1.0f)
 		, SpecularPower(128.0f)
-		, UseTexture(false)
+		, UseTexture(0)
 	{}
 
 	DirectX::XMFLOAT4   Emissive;
@@ -51,6 +51,26 @@ struct _Material
 struct MaterialPropertiesConstantBuffer
 {
 	_Material   Material;
+};
+
+struct BlurProperties
+{
+	int isHorizontal;
+	XMFLOAT2 mouseChange;
+	float Padding;
+};
+
+struct TextureSet
+{
+	ID3D11Texture2D* texture;
+	ID3D11RenderTargetView* view;
+	ID3D11ShaderResourceView* resource;
+	TextureSet()
+	{
+		texture = nullptr;
+		view = nullptr;
+		resource = nullptr;
+	}
 };
 
 enum LightType

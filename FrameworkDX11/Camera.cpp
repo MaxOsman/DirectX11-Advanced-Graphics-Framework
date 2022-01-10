@@ -26,6 +26,9 @@ void Camera::Update(HWND hWnd)
 
         // Check position
         GetCursorPos(&point);
+        /*g_Debug.Print(float(point.x - (0.5 * rc.right + 0.5 * rc.left)));
+        g_Debug.Print(float(point.y - (0.5 * rc.bottom + 0.5 * rc.top)));*/
+        _mouseChange = { float(point.x - (0.5 * rc.right + 0.5 * rc.left)), float(point.y - (0.5 * rc.bottom + 0.5 * rc.top)) };
         POINT newPoint = { point.x - (0.5 * rc.right + 0.5 * rc.left), point.y - (0.5 * rc.bottom + 0.5 * rc.top) };
 
         // Do player rotation
