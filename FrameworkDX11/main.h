@@ -15,14 +15,13 @@
 #include "structures.h"
 #include "Camera.h"
 #include "Debug.h"
+#include "Spline.h"
 
 #include "imgui-master/imgui.h"
 #include "imgui-master/imgui_impl_win32.h"
 #include "imgui-master/imgui_impl_dx11.h"
 
 #include <vector>
-
-using namespace std;
 
 typedef vector<DrawableGameObject*> vecDrawables;
 
@@ -92,7 +91,6 @@ ID3D11PixelShader*			g_pTintPS = nullptr;
 TextureSet					g_pBloomTexture;
 TextureSet					g_pBlurTextureHorizontal;
 TextureSet					g_pBlurTextureVertical;
-//ID3D11PixelShader*			g_pBloomPS = nullptr;
 ID3D11PixelShader*			g_pBlurPS = nullptr;
 ID3D11Buffer*				g_pBlurConstantBuffer = nullptr;
 
@@ -102,6 +100,7 @@ int							g_viewHeight;
 DrawableGameObject			g_GameObject;
 Camera						g_Camera;
 Debug						g_Debug;
+Spline						g_Spline;
 XMFLOAT4					g_pLightPos;
 
 // ImGui

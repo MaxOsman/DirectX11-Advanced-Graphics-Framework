@@ -27,6 +27,7 @@
       <Filter>ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Debug.cpp" />
+    <ClCompile Include="Spline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -60,6 +61,7 @@
       <Filter>ImGui</Filter>
     </ClInclude>
     <ClInclude Include="Debug.h" />
+    <ClInclude Include="Spline.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Tutorial01.rc" />

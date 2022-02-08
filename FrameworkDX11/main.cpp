@@ -667,6 +667,8 @@ HRESULT	InitMesh()
         }
     }
 
+    g_Spline = Spline(g_pd3dDevice);
+
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(SCREEN_VERTEX) * g_numberOfSprites;
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -1235,6 +1237,9 @@ void Render()
     DrawSceneSprites();
 
     RenderScreenQuad(&cb1);
+
+    // Spline
+    g_Spline.Render(g_pImmediateContext, g_pQuadLayout);
 
     // ImGui
     ImGui_ImplDX11_NewFrame();

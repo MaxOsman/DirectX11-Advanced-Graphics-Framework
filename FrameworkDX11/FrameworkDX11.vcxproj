@@ -365,6 +365,7 @@
     <ClInclude Include="imgui-master\imstb_truetype.h" />
     <ClInclude Include="main.h" />
     <CLInclude Include="resource.h" />
+    <ClInclude Include="Spline.h" />
     <ClInclude Include="structures.h" />
     <ResourceCompile Include="Tutorial01.rc" />
   </ItemGroup>
@@ -380,6 +381,7 @@
     <ClCompile Include="imgui-master\imgui_tables.cpp" />
     <ClCompile Include="imgui-master\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Spline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\stone.dds" />
