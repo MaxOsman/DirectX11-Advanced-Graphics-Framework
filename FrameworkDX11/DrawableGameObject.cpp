@@ -145,9 +145,6 @@ HRESULT DrawableGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceConte
 	if (FAILED(hr))
 		return hr;
 
-	// Set primitive topology
-	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 	// load and setup textures
 	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\color.dds", nullptr, &m_pTextureResourceView);
 	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\normals.dds", nullptr, &m_pNormalTexture);
@@ -209,7 +206,8 @@ void DrawableGameObject::draw(ID3D11DeviceContext* pContext, ID3D11ShaderResourc
 	// Set index buffer
 	pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 
-	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
 	pContext->PSSetShaderResources(0, 1, &texture);
 	pContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
@@ -227,7 +225,8 @@ void DrawableGameObject::draw(ID3D11DeviceContext* pContext)
 	// Set index buffer
 	pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 
-	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
 	pContext->PSSetShaderResources(0, 1, &m_pTextureResourceView);
 	pContext->PSSetShaderResources(1, 1, &m_pNormalTexture);

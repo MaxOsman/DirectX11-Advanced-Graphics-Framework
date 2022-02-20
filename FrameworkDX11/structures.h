@@ -1,4 +1,6 @@
 #pragma once
+#include <DirectXMath.h>
+#include <d3d11_1.h>
 using namespace std;
 using namespace DirectX;
 
@@ -58,6 +60,12 @@ struct BlurProperties
 	int isHorizontal;
 	XMFLOAT2 mouseChange;
 	float Padding;
+};
+
+struct TessProperties
+{
+	float tessFactor;
+	XMFLOAT3 padding;
 };
 
 struct TextureSet

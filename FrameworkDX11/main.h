@@ -54,6 +54,7 @@ ID3D11InputLayout*			g_pVertexLayout = nullptr;
 ID3D11Buffer*				g_pConstantBuffer = nullptr;
 ID3D11Buffer*				g_pLightConstantBuffer = nullptr;
 ID3D11Buffer*				g_pMaterialConstantBuffer = nullptr;
+ID3D11Buffer*				g_pTessConstantBuffer = nullptr;
 
 // RTT
 TextureSet					g_pRTTTexture;
@@ -100,7 +101,7 @@ int							g_viewHeight;
 DrawableGameObject			g_GameObject;
 Camera						g_Camera;
 Debug						g_Debug;
-Spline						g_Spline;
+//Spline						g_Spline;
 XMFLOAT4					g_pLightPos;
 
 // ImGui
@@ -113,6 +114,14 @@ float						guiLightY = 0.0f;
 float						guiLightZ = 0.0f;
 
 MaterialPropertiesConstantBuffer	g_pMaterial;
+
+ID3D11HullShader*			g_pHullShader = nullptr;
+ID3D11DomainShader*			g_pDomainShader = nullptr;
+
+D3D11_RASTERIZER_DESC		g_wfdescNormal;
+D3D11_RASTERIZER_DESC		g_wfdescWireframe;
+bool						g_isWireframe = false;
+float						g_tessFactor = 0.1f;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations

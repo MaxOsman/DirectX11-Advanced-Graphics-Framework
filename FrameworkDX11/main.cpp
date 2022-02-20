@@ -283,20 +283,35 @@ HRESULT InitDevice()
     if( FAILED( hr ) )
         return hr;
 
-    D3D11_RASTERIZER_DESC wfdesc = {};
-    wfdesc.AntialiasedLineEnable = true;
-    wfdesc.CullMode = D3D11_CULL_BACK;
-    wfdesc.DepthBias = 0;
-    wfdesc.DepthBiasClamp = 0.0f;
-    wfdesc.DepthClipEnable = true;
-    wfdesc.FillMode = D3D11_FILL_SOLID;
-    wfdesc.FrontCounterClockwise = false;
-    wfdesc.MultisampleEnable = true;
-    wfdesc.ScissorEnable = false;
-    wfdesc.SlopeScaledDepthBias = 0.0f;
-    ID3D11RasterizerState* rsstate;
+    g_wfdescNormal = {};
+    g_wfdescNormal.AntialiasedLineEnable = true;
+    g_wfdescNormal.CullMode = D3D11_CULL_BACK;
+    g_wfdescNormal.DepthBias = 0;
+    g_wfdescNormal.DepthBiasClamp = 0.0f;
+    g_wfdescNormal.DepthClipEnable = true;
+    g_wfdescNormal.FillMode = D3D11_FILL_SOLID;
+    g_wfdescNormal.FrontCounterClockwise = false;
+    g_wfdescNormal.MultisampleEnable = true;
+    g_wfdescNormal.ScissorEnable = false;
+    g_wfdescNormal.SlopeScaledDepthBias = 0.0f;
+    /*ID3D11RasterizerState* rsstate;
     hr = g_pd3dDevice->CreateRasterizerState(&wfdesc, &rsstate);
-    g_pImmediateContext->RSSetState(rsstate);
+    g_pImmediateContext->RSSetState(rsstate);*/
+
+    g_wfdescWireframe = {};
+    g_wfdescWireframe.AntialiasedLineEnable = true;
+    g_wfdescWireframe.CullMode = D3D11_CULL_NONE;
+    g_wfdescWireframe.DepthBias = 0;
+    g_wfdescWireframe.DepthBiasClamp = 0.0f;
+    g_wfdescWireframe.DepthClipEnable = true;
+    g_wfdescWireframe.FillMode = D3D11_FILL_WIREFRAME;
+    g_wfdescWireframe.FrontCounterClockwise = false;
+    g_wfdescWireframe.MultisampleEnable = true;
+    g_wfdescWireframe.ScissorEnable = false;
+    g_wfdescWireframe.SlopeScaledDepthBias = 0.0f;
+    /*ID3D11RasterizerState* rsstate;
+    hr = g_pd3dDevice->CreateRasterizerState(&wfdesc, &rsstate);
+    g_pImmediateContext->RSSetState(rsstate);*/
 
     // Week 6 - Render to texture
     // Code based on www.braynzarsoft.net/viewtutorial/q16390-35-render-to-texture
@@ -432,7 +447,7 @@ HRESULT	InitMesh()
 {
 	// Compile the vertex shader
 	ID3DBlob* pVSBlob = nullptr;
-	HRESULT hr = CompileShaderFromFile(L"shaderNormal.fx", "VS", "vs_4_0", &pVSBlob);
+	HRESULT hr = CompileShaderFromFile(L"shaderNormal.fx", "VS", "vs_5_0", &pVSBlob);
 	if (FAILED(hr))
 	{
 		MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -448,7 +463,7 @@ HRESULT	InitMesh()
 
     // Compile the RTT vertex shader
     ID3DBlob* pRTTVSBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "RTT_VS", "vs_4_0", &pRTTVSBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "RTT_VS", "vs_5_0", &pRTTVSBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -463,9 +478,42 @@ HRESULT	InitMesh()
     }
 
 
+    // Compile the hull shader
+    ID3DBlob* pHSBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "HS", "hs_5_0", &pHSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the hull shader
+    hr = g_pd3dDevice->CreateHullShader(pHSBlob->GetBufferPointer(), pHSBlob->GetBufferSize(), nullptr, &g_pHullShader);
+    if (FAILED(hr))
+    {
+        pHSBlob->Release();
+        return hr;
+    }
+
+    // Compile the domain shader
+    ID3DBlob* pDSBlob = nullptr;
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "DS", "ds_5_0", &pDSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the domain shader
+    hr = g_pd3dDevice->CreateDomainShader(pDSBlob->GetBufferPointer(), pDSBlob->GetBufferSize(), nullptr, &g_pDomainShader);
+    if (FAILED(hr))
+    {
+        pDSBlob->Release();
+        return hr;
+    }
+
+
     // Set up geometry shader
     ID3DBlob* pGSBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS", "gs_4_0", &pGSBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS", "gs_5_0", &pGSBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -478,7 +526,7 @@ HRESULT	InitMesh()
 
     // Set up geometry billboarding shader
     ID3DBlob* pGSBillBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS_BILL", "gs_4_0", &pGSBillBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS_BILL", "gs_5_0", &pGSBillBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -493,7 +541,7 @@ HRESULT	InitMesh()
 
     // Compile the depth geometry shader
     ID3DBlob* pDepthGSBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS_Depth", "gs_4_0", &pDepthGSBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "GS_Depth", "gs_5_0", &pDepthGSBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -540,7 +588,7 @@ HRESULT	InitMesh()
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = nullptr;
-	hr = CompileShaderFromFile(L"shaderNormal.fx", "PS", "ps_4_0", &pPSBlob);
+	hr = CompileShaderFromFile(L"shaderNormal.fx", "PS", "ps_5_0", &pPSBlob);
 	if (FAILED(hr))
 	{
 		MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -554,7 +602,7 @@ HRESULT	InitMesh()
 
     // Compile the billboarding pixel shader
     ID3DBlob* pPSBillBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_BILL", "ps_4_0", &pPSBillBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_BILL", "ps_5_0", &pPSBillBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -568,7 +616,7 @@ HRESULT	InitMesh()
 
     // Compile the depth pixel shader
     ID3DBlob* pPSDepthBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Depth", "ps_4_0", &pPSDepthBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Depth", "ps_5_0", &pPSDepthBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -582,7 +630,7 @@ HRESULT	InitMesh()
 
     // Compile the tint pixel shader
     ID3DBlob* pPSTintBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Tint", "ps_4_0", &pPSTintBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Tint", "ps_5_0", &pPSTintBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -596,7 +644,7 @@ HRESULT	InitMesh()
 
     // Compile the blur pixel shader
     ID3DBlob* pPSBlurBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Blur", "ps_4_0", &pPSBlurBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "PS_Blur", "ps_5_0", &pPSBlurBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -610,7 +658,7 @@ HRESULT	InitMesh()
 
     // Compile the RTT pixel shader
     ID3DBlob* pPSRTTBlob = nullptr;
-    hr = CompileShaderFromFile(L"shaderNormal.fx", "RTT_PS", "ps_4_0", &pPSRTTBlob);
+    hr = CompileShaderFromFile(L"shaderNormal.fx", "RTT_PS", "ps_5_0", &pPSRTTBlob);
     if (FAILED(hr))
     {
         MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
@@ -635,11 +683,6 @@ HRESULT	InitMesh()
     g_ScreenQuad[2].tex = XMFLOAT2(0.0f, 1.0f);
     g_ScreenQuad[3].pos = XMFLOAT3(1.0f, -1.0f, 0.0f);
     g_ScreenQuad[3].tex = XMFLOAT2(1.0f, 1.0f);
-    /*for (short i = 0; i < 4; ++i)
-    {
-        g_ScreenQuad[i].pos.x = (g_ScreenQuad[i].pos.x / 2) - 0.5f;
-        g_ScreenQuad[i].pos.y = (g_ScreenQuad[i].pos.y / 2) - 0.5f;
-    }*/
 
     D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
@@ -667,7 +710,7 @@ HRESULT	InitMesh()
         }
     }
 
-    g_Spline = Spline(g_pd3dDevice);
+    //g_Spline = Spline(g_pd3dDevice);
 
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(SCREEN_VERTEX) * g_numberOfSprites;
@@ -679,39 +722,28 @@ HRESULT	InitMesh()
     hr = g_pd3dDevice->CreateBuffer(&bd, &InitData, &g_pSpriteVertexBuffer);
 
 	// Create the constant buffer
-	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(ConstantBuffer);
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bd.CPUAccessFlags = 0;
 	hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pConstantBuffer);
 
 	// Create the light constant buffer
-	bd.Usage = D3D11_USAGE_DEFAULT;
 	bd.ByteWidth = sizeof(LightPropertiesConstantBuffer);
-	bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	bd.CPUAccessFlags = 0;
 	hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pLightConstantBuffer);
 
     // Create the billboard constant buffer
-    bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(BillboardConstantBuffer);
-    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    bd.CPUAccessFlags = 0;
     hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pSpriteConstantBuffer);
 
     // Create the material constant buffer
-    bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(MaterialPropertiesConstantBuffer);
-    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    bd.CPUAccessFlags = 0;
     hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pMaterialConstantBuffer);
 
     // Create the blur constant buffer
-    bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(BlurProperties);
-    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    bd.CPUAccessFlags = 0;
     hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pBlurConstantBuffer);
+
+    // Create the tesselation constant buffer
+    bd.ByteWidth = sizeof(TessProperties);
+    hr = g_pd3dDevice->CreateBuffer(&bd, nullptr, &g_pTessConstantBuffer);
 
 	return hr;
 }
@@ -785,6 +817,9 @@ void CleanupDevice()
     if (g_pNoMSAADepthStencilTexture) g_pNoMSAADepthStencilTexture->Release();
     if (g_pTintPS) g_pTintPS->Release();
     if (g_pMaterialConstantBuffer) g_pMaterialConstantBuffer->Release();
+    if (g_pHullShader) g_pHullShader->Release();
+    if (g_pDomainShader) g_pDomainShader->Release();
+    if (g_pTessConstantBuffer) g_pTessConstantBuffer->Release();
 
     if (g_pBloomTexture.texture) g_pBloomTexture.texture->Release();
     if (g_pBloomTexture.view) g_pBloomTexture.view->Release();
@@ -939,7 +974,7 @@ void HandlePerFrameInput(float deltaTime)
     }
 }
 
-void setupLightForRender()
+void setupConstantBuffers()
 {
     LightPropertiesConstantBuffer lightProperties;
 
@@ -980,6 +1015,13 @@ void setupLightForRender()
     blurProps.Padding = 0;
     g_pImmediateContext->UpdateSubresource(g_pBlurConstantBuffer, 0, nullptr, &blurProps, 0, 0);
     g_pImmediateContext->PSSetConstantBuffers(4, 1, &g_pBlurConstantBuffer);
+
+    // Tesselation
+    TessProperties tessProps;
+    tessProps.tessFactor = g_tessFactor;
+    tessProps.padding = { 0,0,0 };
+    g_pImmediateContext->UpdateSubresource(g_pTessConstantBuffer, 0, nullptr, &tessProps, 0, 0);
+    g_pImmediateContext->HSSetConstantBuffers(5, 1, &g_pTessConstantBuffer);
 }
 
 void DrawScene(ConstantBuffer* cb)
@@ -1019,6 +1061,8 @@ void Bloom(ConstantBuffer* cb)
 
     // Draw scene to target
     g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
+    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
     g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
@@ -1026,6 +1070,8 @@ void Bloom(ConstantBuffer* cb)
     DrawScene(cb);
 
     g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
+    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
 
@@ -1093,6 +1139,8 @@ void RenderScreenQuad(ConstantBuffer* cb)
     g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
+    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
     g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
 
     DrawScene(cb);
@@ -1100,6 +1148,8 @@ void RenderScreenQuad(ConstantBuffer* cb)
     g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
+    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
+    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
 
     DrawSceneSprites();
 
@@ -1168,12 +1218,16 @@ void DepthMap(ConstantBuffer* cb)
     g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_pDepthGS, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pDepthPS, nullptr, 0);
+    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
+    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
 
     g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
 
     DrawScene(cb);
 
     g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
+    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
+    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
 
     DrawSceneSprites();
 }
@@ -1186,6 +1240,18 @@ void Render()
     float t = calculateDeltaTime(); // capped at 60 fps
     if (t == 0.0f)
         return;
+
+    // Draw mode
+    ID3D11RasterizerState* rsstate;
+    if (g_isWireframe)
+    {
+        g_pd3dDevice->CreateRasterizerState(&g_wfdescWireframe, &rsstate);
+    }
+    else
+    {
+        g_pd3dDevice->CreateRasterizerState(&g_wfdescNormal, &rsstate);
+    }
+    g_pImmediateContext->RSSetState(rsstate);
 
     // Update the cube transform, material etc.
     float tempT = (guiRotation ? t : 0);
@@ -1204,11 +1270,12 @@ void Render()
     cb1.mProjection = XMMatrixTranspose(XMLoadFloat4x4(&p));
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
 
-    setupLightForRender();
+    setupConstantBuffers();
 
     g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
     g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
     g_pImmediateContext->GSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+
 
     // Draw functions
     if (guiMotionBlur)
@@ -1225,6 +1292,8 @@ void Render()
     g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
+    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
 
     g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
 
@@ -1233,13 +1302,15 @@ void Render()
     g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryBillboardShader, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
+    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
+    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
 
     DrawSceneSprites();
 
     RenderScreenQuad(&cb1);
 
     // Spline
-    g_Spline.Render(g_pImmediateContext, g_pQuadLayout);
+    //g_Spline.Render(g_pImmediateContext, g_pQuadLayout);
 
     // ImGui
     ImGui_ImplDX11_NewFrame();
@@ -1250,13 +1321,15 @@ void Render()
     ImGui::Begin("Options");
     static const char* items[]{ "Diffuse", "Normals", "Parallax", "Parallax Occlusion", "Self-Shadowing POM"};
     ImGui::ListBox("Shading", &materialSelection, items, ARRAYSIZE(items));
-    static const char* items2[]{ "Default", "Depth Render", "Invert Colours" };
-    ImGui::ListBox("Render Mode", &guiSelection, items2, ARRAYSIZE(items2));
-    ImGui::SliderFloat("Light X Pos", &guiLightX, -3.0f, 3.0f);
-    ImGui::SliderFloat("Light Y Pos", &guiLightY, -3.0f, 3.0f);
-    ImGui::SliderFloat("Light Z Pos", &guiLightZ, -3.0f, 3.0f);
-    ImGui::Checkbox("Enable Motion Blur", &guiMotionBlur);
+    //static const char* items2[]{ "Default", "Depth Render", "Invert Colours" };
+    //ImGui::ListBox("Render Mode", &guiSelection, items2, ARRAYSIZE(items2));
+    //ImGui::SliderFloat("Light X Pos", &guiLightX, -3.0f, 3.0f);
+    //ImGui::SliderFloat("Light Y Pos", &guiLightY, -3.0f, 3.0f);
+    //ImGui::SliderFloat("Light Z Pos", &guiLightZ, -3.0f, 3.0f);
+    //ImGui::Checkbox("Enable Motion Blur", &guiMotionBlur);
     ImGui::Checkbox("Enable Rotation", &guiRotation);
+    ImGui::Checkbox("Enable Wireframe", &g_isWireframe);
+    ImGui::SliderFloat("Tesselation Factor", &g_tessFactor, 0.001f, 10.0f);
     ImGui::End();
 
     ImGui::Render();

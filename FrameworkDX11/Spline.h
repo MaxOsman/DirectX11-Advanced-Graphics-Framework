@@ -8,6 +8,7 @@
 class Spline
 {
 public:
+	Spline() {}
 	Spline(ID3D11Device* g_pd3dDevice);
 	~Spline();
 

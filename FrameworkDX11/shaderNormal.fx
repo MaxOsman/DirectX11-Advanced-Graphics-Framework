@@ -92,6 +92,12 @@ cbuffer BlurProperties : register(b4)
 	float Padding;
 }
 
+cbuffer TessProperties : register(b5)
+{
+	float tessFactor;
+	float3 padding;
+}
+
 //--------------------------------------------------------------------------------------
 
 struct VS_INPUT
@@ -123,6 +129,21 @@ struct RTT_PS_INPUT
 {
 	float4 Pos : SV_POSITION;
 	float2 Tex : TEXCOORD0;
+};
+
+struct HS_IO
+{
+	float4 Pos : POSITION;
+	float3 Norm : NORMAL;
+	float2 Tex : TEXCOORD0;
+	float3 Tan : TANGENT;
+	float3 Binorm : BINORMAL;
+};
+
+struct HS_CONSTANT_DATA_OUTPUT
+{
+	float Edges[3] : SV_Tessfactor;
+	float Inside : SV_InsideTessfactor;
 };
 
 float4 DoDiffuse(float4 lightColour, float3 L, float3 N)
@@ -275,7 +296,7 @@ RTT_PS_INPUT RTT_VS( RTT_VS_INPUT input )
 // Geometry Shaders
 //--------------------------------------------------------------------------------------
 
-[maxvertexcount(6)]
+[maxvertexcount(3)]
 void GS(triangle VS_INPUT input[3], inout TriangleStream<PS_INPUT> OutputStream)
 {
 	PS_INPUT output = (PS_INPUT)0;
@@ -343,7 +364,7 @@ void GS_BILL(point RTT_PS_INPUT input[1], inout TriangleStream<RTT_PS_INPUT> Out
 	}
 }
 
-[maxvertexcount(6)]
+[maxvertexcount(3)]
 void GS_Depth(triangle RTT_PS_INPUT input[3], inout TriangleStream<RTT_PS_INPUT> OutputStream)
 {
 	/***********************************************
@@ -538,4 +559,58 @@ float4 PS_Tint(RTT_PS_INPUT IN) : SV_TARGET
 float4 PSSolid(PS_INPUT input) : SV_Target
 {
 	return vOutputColor;
+}
+
+//--------------------------------------------------------------------------------------
+// Hull Shader
+//--------------------------------------------------------------------------------------
+[domain("tri")]
+[partitioning("fractional_even")]
+[outputtopology("triangle_cw")]
+[outputcontrolpoints(3)]
+[patchconstantfunc("PassThroughConstantHS")]
+[maxtessfactor(10.0)]
+VS_INPUT HS(InputPatch<VS_INPUT, 3> ip, uint i : SV_OutputControlPointID, uint PatchID : SV_PrimitiveID)
+{
+	VS_INPUT output;
+
+	output.Pos = ip[i].Pos;
+	output.Norm = ip[i].Norm;
+	output.Tex = ip[i].Tex;
+	output.Tan = ip[i].Tan;
+	output.Binorm = ip[i].Binorm;
+
+	return output;
+}
+
+HS_CONSTANT_DATA_OUTPUT PassThroughConstantHS(InputPatch<VS_INPUT, 3> ip, uint PatchID : SV_PrimitiveID)
+{
+	HS_CONSTANT_DATA_OUTPUT output;
+
+	output.Edges[0] = tessFactor;
+	output.Edges[1] = tessFactor;
+	output.Edges[2] = tessFactor;
+	output.Inside = tessFactor;
+
+	return output;
+}
+
+//--------------------------------------------------------------------------------------
+// Domain Shader
+//--------------------------------------------------------------------------------------
+
+[domain("tri")]
+VS_INPUT DS(HS_CONSTANT_DATA_OUTPUT input, float3 BarycentricCoordinates : SV_DomainLocation, const OutputPatch<VS_INPUT, 3> TrianglePatch)
+{
+	VS_INPUT output;
+
+	float3 vWorldPos = BarycentricCoordinates.x * TrianglePatch[0].Pos + BarycentricCoordinates.y * TrianglePatch[1].Pos + BarycentricCoordinates.z * TrianglePatch[2].Pos;
+	output.Pos = float4(vWorldPos, 1.0f);
+
+	output.Norm = BarycentricCoordinates.x * TrianglePatch[0].Norm + BarycentricCoordinates.y * TrianglePatch[1].Norm + BarycentricCoordinates.z * TrianglePatch[2].Norm;
+	output.Tex = BarycentricCoordinates.x * TrianglePatch[0].Tex + BarycentricCoordinates.y * TrianglePatch[1].Tex + BarycentricCoordinates.z * TrianglePatch[2].Tex;
+	output.Tan = BarycentricCoordinates.x * TrianglePatch[0].Tan + BarycentricCoordinates.y * TrianglePatch[1].Tan + BarycentricCoordinates.z * TrianglePatch[2].Tan;
+	output.Binorm = BarycentricCoordinates.x * TrianglePatch[0].Binorm + BarycentricCoordinates.y * TrianglePatch[1].Binorm + BarycentricCoordinates.z * TrianglePatch[2].Binorm;
+
+	return output;
 }
