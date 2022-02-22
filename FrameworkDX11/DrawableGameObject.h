@@ -47,7 +47,6 @@ public:
 	void								CalculateTangentBinormalRH(SimpleVertex v0, SimpleVertex v1, SimpleVertex v2, XMFLOAT3& normal, XMFLOAT3& tangent, XMFLOAT3& binormal);
 	ID3D11SamplerState*					getSampler() { return m_pSamplerLinear; }
 	void								setScale(XMFLOAT3 scale) { m_scale = scale; }
-	//void								setBloom(bool bloom) { m_pIsBloom = bloom; }
 
 private:
 	
@@ -60,10 +59,4 @@ private:
 	ID3D11SamplerState *				m_pSamplerLinear;
 	XMFLOAT3							m_position;
 	XMFLOAT3							m_scale = { 1.0f, 1.0f, 1.0f };
-
-	/*ID3D11ShaderResourceView*			m_pBloomTextureResourceView = nullptr;
-	ID3D11ShaderResourceView*			m_pBloomNormalTexture = nullptr;
-	ID3D11ShaderResourceView*			m_pBloomParallaxTexture = nullptr;
-
-	bool								m_pIsBloom = false;*/
 };

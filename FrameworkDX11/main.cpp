@@ -294,9 +294,6 @@ HRESULT InitDevice()
     g_wfdescNormal.MultisampleEnable = true;
     g_wfdescNormal.ScissorEnable = false;
     g_wfdescNormal.SlopeScaledDepthBias = 0.0f;
-    /*ID3D11RasterizerState* rsstate;
-    hr = g_pd3dDevice->CreateRasterizerState(&wfdesc, &rsstate);
-    g_pImmediateContext->RSSetState(rsstate);*/
 
     g_wfdescWireframe = {};
     g_wfdescWireframe.AntialiasedLineEnable = true;
@@ -309,9 +306,6 @@ HRESULT InitDevice()
     g_wfdescWireframe.MultisampleEnable = true;
     g_wfdescWireframe.ScissorEnable = false;
     g_wfdescWireframe.SlopeScaledDepthBias = 0.0f;
-    /*ID3D11RasterizerState* rsstate;
-    hr = g_pd3dDevice->CreateRasterizerState(&wfdesc, &rsstate);
-    g_pImmediateContext->RSSetState(rsstate);*/
 
     // Week 6 - Render to texture
     // Code based on www.braynzarsoft.net/viewtutorial/q16390-35-render-to-texture
@@ -759,6 +753,8 @@ HRESULT	InitWorld(int width, int height)
 
     g_pLightPos = { 0.0f, 0.0f, -2.0f, 0.0f };
 
+
+
 	return S_OK;
 }
 
@@ -992,6 +988,8 @@ void setupConstantBuffers()
     XMStoreFloat4(&lightProperties.Lights[0].Direction, LightDirection);
 
     g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
+    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+    g_pImmediateContext->GSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
 
     // Set up billboard
     BillboardConstantBuffer billboardProperties;
@@ -1032,6 +1030,8 @@ void DrawScene(ConstantBuffer* cb)
     cb->mWorld = XMMatrixTranspose(mGO);
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, cb, 0, 0);
     g_GameObject.draw(g_pImmediateContext);
+
+
 }
 
 void DrawSceneSprites()
@@ -1061,11 +1061,11 @@ void Bloom(ConstantBuffer* cb)
 
     // Draw scene to target
     g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
-    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
-    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
     g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
     g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
+    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
+    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
 
     DrawScene(cb);
 
@@ -1269,13 +1269,9 @@ void Render()
     cb1.mView = XMMatrixTranspose(XMLoadFloat4x4(&v));
     cb1.mProjection = XMMatrixTranspose(XMLoadFloat4x4(&p));
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
+    g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
 
     setupConstantBuffers();
-
-    g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
-    g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
-    g_pImmediateContext->GSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
-
 
     // Draw functions
     if (guiMotionBlur)
