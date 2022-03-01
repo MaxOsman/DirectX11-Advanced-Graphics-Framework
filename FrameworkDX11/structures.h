@@ -68,6 +68,12 @@ struct TessProperties
 	XMFLOAT3 padding;
 };
 
+struct TerrainProperties
+{
+	int IsTerrain;
+	XMFLOAT3 Padding_;
+};
+
 struct TextureSet
 {
 	ID3D11Texture2D* texture;

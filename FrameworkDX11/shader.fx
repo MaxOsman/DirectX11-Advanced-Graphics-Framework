@@ -18,6 +18,15 @@ cbuffer ConstantBuffer : register( b0 )
 }
 
 Texture2D txDiffuse : register(t0);
+Texture2D txNormal : register(t1);
+Texture2D txParallax : register(t2);
+Texture2D txBloom : register(t3);
+
+Texture2D txStone : register(t4);
+Texture2D txGrass : register(t5);
+Texture2D txLightDirt : register(t6);
+Texture2D txSnow : register(t7);
+
 SamplerState samLinear : register(s0);
 
 #define MAX_LIGHTS 1
@@ -37,7 +46,7 @@ struct _Material
 	float4  Specular;       // 16 bytes
 							//----------------------------------- (16 byte boundary)
 	float   SpecularPower;  // 4 bytes
-	bool    UseTexture;     // 4 bytes
+	int    UseTexture;		// 4 bytes
 	float2  Padding;        // 8 bytes
 							//----------------------------------- (16 byte boundary)
 };  // Total:               // 80 bytes ( 5 * 16 )
@@ -73,13 +82,47 @@ cbuffer LightProperties : register(b2)
 	float4 GlobalAmbient;               // 16 bytes
 										//----------------------------------- (16 byte boundary)
 	Light Lights[MAX_LIGHTS];           // 80 * 8 = 640 bytes
-}; 
+};
+
+cbuffer BillboardProperties : register(b3)
+{
+	float4 EyePos;
+	float4 UpVector;
+};
+
+cbuffer BlurProperties : register(b4)
+{
+	int isHorizontal;
+	float2 mouseChange;
+	float Padding;
+}
+
+cbuffer TessProperties : register(b5)
+{
+	float tessFactor;
+	float3 padding;
+}
+
+cbuffer TerrainProperties : register(b6)
+{
+	int IsTerrain;
+	float3 Padding_;
+}
 
 //--------------------------------------------------------------------------------------
+
 struct VS_INPUT
 {
-    float4 Pos : POSITION;
+	float4 Pos : POSITION;
 	float3 Norm : NORMAL;
+	float2 Tex : TEXCOORD0;
+	float3 Tan : TANGENT;
+	float3 Binorm : BINORMAL;
+};
+
+struct RTT_VS_INPUT
+{
+	float4 Pos : POSITION;
 	float2 Tex : TEXCOORD0;
 };
 
@@ -89,25 +132,49 @@ struct PS_INPUT
 	float4 worldPos : POSITION;
 	float3 Norm : NORMAL;
 	float2 Tex : TEXCOORD0;
+	float3 eyeVectorTS : POSITION4;
+	float3 lightVectorTS : POSITION5;
 };
 
+struct RTT_PS_INPUT
+{
+	float4 Pos : SV_POSITION;
+	float2 Tex : TEXCOORD0;
+};
 
-float4 DoDiffuse(Light light, float3 L, float3 N)
+struct HS_IO
+{
+	float4 Pos : POSITION;
+	float3 Norm : NORMAL;
+	float2 Tex : TEXCOORD0;
+	float3 Tan : TANGENT;
+	float3 Binorm : BINORMAL;
+};
+
+struct HS_CONSTANT_DATA_OUTPUT
+{
+	float Edges[3] : SV_Tessfactor;
+	float Inside : SV_InsideTessfactor;
+};
+
+//--------------------------------------------------------------------------------------
+
+float4 DoDiffuse(float4 lightColour, float3 L, float3 N)
 {
 	float NdotL = max(0, dot(N, L));
-	return light.Color * NdotL;
+	return lightColour * NdotL;
 }
 
-float4 DoSpecular(Light lightObject, float3 vertexToEye, float3 lightDirectionToVertex, float3 Normal)
+float4 DoSpecular(float3 vertexToEye, float3 lightDirectionToVertex, float3 Normal)
 {
-	float4 lightDir = float4(normalize(-lightDirectionToVertex),1);
+	float3 lightDir = normalize(-lightDirectionToVertex);
 	vertexToEye = normalize(vertexToEye);
 
 	float lightIntensity = saturate(dot(Normal, lightDir));
 	float4 specular = float4(0, 0, 0, 0);
 	if (lightIntensity > 0.0f)
 	{
-		float3  reflection = normalize(2 * lightIntensity * Normal - lightDir);
+		float3 reflection = normalize(2 * lightIntensity * Normal - lightDir);
 		specular = pow(saturate(dot(reflection, vertexToEye)), Material.SpecularPower); // 32 = specular power
 	}
 
@@ -125,97 +192,410 @@ struct LightingResult
 	float4 Specular;
 };
 
-LightingResult DoPointLight(Light light, float3 vertexToEye, float4 vertexPos, float3 N)
+LightingResult DoPointLight(Light light, float3 vertexToEye, float3 N, float3 vertexToLight)
 {
 	LightingResult result;
 
-	float3 LightDirectionToVertex = (vertexPos - light.Position).xyz;
+	float3 LightDirectionToVertex = mul(vertexToLight, -1.0f);
 	float distance = length(LightDirectionToVertex);
-	LightDirectionToVertex = LightDirectionToVertex  / distance;
+	LightDirectionToVertex = LightDirectionToVertex / distance;
 
-	float3 vertexToLight = (light.Position - vertexPos).xyz;
 	distance = length(vertexToLight);
-	vertexToLight = vertexToLight / distance;
+	vertexToLight = normalize(vertexToLight);
 
-	float attenuation = DoAttenuation(light, distance);
-	attenuation = 1;
+	float attenuation;
+	if (light.LightType != DIRECTIONAL_LIGHT)
+	{
+		attenuation = DoAttenuation(light, distance);
+	}
+	else
+	{
+		attenuation = 1;
+	}
 
-
-	result.Diffuse = DoDiffuse(light, vertexToLight, N) * attenuation;
-	result.Specular = DoSpecular(light, vertexToEye, LightDirectionToVertex, N) * attenuation;
+	result.Diffuse = DoDiffuse(light.Color, vertexToLight, N) * attenuation;
+	result.Specular = DoSpecular(vertexToEye, LightDirectionToVertex, N) * attenuation;
 
 	return result;
 }
 
-LightingResult ComputeLighting(float4 vertexPos, float3 N)
+LightingResult ComputeLighting(float3 N, float3 vertexToEye, float3 vertexToLight)
 {
-	float3 vertexToEye = normalize(EyePosition - vertexPos).xyz;
+	LightingResult result = DoPointLight(Lights[0], vertexToEye, N, vertexToLight);
 
-	LightingResult totalResult = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+	return result;
+}
 
-	[unroll]
-	for (int i = 0; i < MAX_LIGHTS; ++i)
+float ParallaxSelfShadowing(float3 lightDir, float2 texCoords, float parallaxScale)
+{
+	/***********************************************
+	MARKING SCHEME: Parallax Mapping
+	DESCRIPTION: Self-shadowing parallax occlusion mapping
+	***********************************************/
+	const float initialHeight = 1.0f;
+	float shadowMultiplier = 1.0f;
+
+	// If surface pointing towards light
+	if (dot(float3(0.0f, 0.0f, 1.0f), lightDir) > 0)
 	{
-		LightingResult result = { { 0, 0, 0, 0 },{ 0, 0, 0, 0 } };
+		float numSamplesUnderSurface = 0;
+		shadowMultiplier = 0;
 
-		if (!Lights[i].Enabled) 
-			continue;
-		
-		result = DoPointLight(Lights[i], vertexToEye, vertexPos, N);
-		
-		totalResult.Diffuse += result.Diffuse;
-		totalResult.Specular += result.Specular;
+		float numLayers = lerp(30, 15, abs(dot(float3(0.0f, 0.0f, 1.0f), lightDir)));
+		float layerHeight = initialHeight / numLayers;
+		float2 dTex = parallaxScale * lightDir.xy / lightDir.z / numLayers;
+
+		// Initialise parameters
+		float currentLayerHeight = initialHeight - layerHeight;
+
+		texCoords += dTex;
+		float height = txParallax.Sample(samLinear, texCoords).x;
+
+		int stepIndex = 1;
+		[unroll(32)]
+		while (currentLayerHeight > 0)
+		{
+			if (height < currentLayerHeight)
+			{
+				numSamplesUnderSurface += 1;
+
+				float newShadowMultiplier = (currentLayerHeight - height) * (1.0f - stepIndex / numLayers);
+				shadowMultiplier = max(shadowMultiplier, newShadowMultiplier);
+			}
+
+			stepIndex += 1;
+			currentLayerHeight -= layerHeight;
+
+			texCoords += dTex;
+			height = txParallax.Sample(samLinear, texCoords).x;
+		}
+
+		if (numSamplesUnderSurface < 1)
+		{
+			shadowMultiplier = 1.0f;
+		}
+		else
+		{
+			shadowMultiplier = 1.0f - shadowMultiplier;
+		}
 	}
 
-	totalResult.Diffuse = saturate(totalResult.Diffuse);
-	totalResult.Specular = saturate(totalResult.Specular);
-
-	return totalResult;
+	return (1.0f - shadowMultiplier);
 }
 
 //--------------------------------------------------------------------------------------
-// Vertex Shader
+// Vertex Shaders
 //--------------------------------------------------------------------------------------
-PS_INPUT VS( VS_INPUT input )
+VS_INPUT VS( VS_INPUT input )
 {
-    PS_INPUT output = (PS_INPUT)0;
-    output.Pos = mul( input.Pos, World );
-	output.worldPos = output.Pos;
-    output.Pos = mul( output.Pos, View );
-    output.Pos = mul( output.Pos, Projection );
+	VS_INPUT output = (VS_INPUT)0;
 
-	// multiply the normal by the world transform (to go from model space to world space)
-	output.Norm = mul(float4(input.Norm, 1), World).xyz;
+	output = input;
 
-	output.Tex = input.Tex;
-    
-    return output;
+	return output;
 }
 
+RTT_PS_INPUT RTT_VS( RTT_VS_INPUT input )
+{
+	RTT_PS_INPUT output = (RTT_PS_INPUT)0;
+
+	output.Pos = input.Pos;
+	output.Tex = input.Tex;
+
+	return output;
+}
+
+//--------------------------------------------------------------------------------------
+// Geometry Shaders
+//--------------------------------------------------------------------------------------
+
+[maxvertexcount(3)]
+void GS(triangle VS_INPUT input[3], inout TriangleStream<PS_INPUT> OutputStream)
+{
+	PS_INPUT output = (PS_INPUT)0;
+	const float dScale = 5.0f;
+	const float dBias = 5.0f;
+	for (int i = 0; i < 3; ++i)
+	{
+		output.Pos = mul(input[i].Pos, World);
+		output.worldPos = output.Pos;
+		output.Pos = mul(output.Pos, View);
+		output.Pos = mul(output.Pos, Projection);
+
+		output.Tex = input[i].Tex;
+
+		// multiply the normal by the world transform (to go from model space to world space)
+		output.Norm = mul(float4(input[i].Norm, 0), World).xyz;
+
+		// Week 2 lecture slides
+		float3 T = mul(float4(input[i].Tan, 0), World).xyz;
+		float3 B = mul(float4(input[i].Binorm, 0), World).xyz;
+		float3x3 TBN = float3x3(T, B, output.Norm);
+
+		// Tesselation map
+		float displacement = txParallax.SampleLevel(samLinear, output.Tex, 0).x;
+		displacement = displacement * dScale + dBias;
+		float3 direction = -mul(float3(0, 0, 1), TBN);
+		output.worldPos += float4(direction * displacement, 0);
+
+		TBN = transpose(TBN);
+
+		output.eyeVectorTS = normalize(mul((EyePosition - output.worldPos).xyz, TBN));
+		output.lightVectorTS = mul((Lights[0].Position - output.worldPos).xyz, TBN);
+
+		OutputStream.Append(output);
+	}
+}
+
+// Based on www.braynzarsoft.net/viewtutorial/q16390-36-billboarding-geometry-shader
+[maxvertexcount(4)]
+void GS_BILL(point RTT_PS_INPUT input[1], inout TriangleStream<RTT_PS_INPUT> OutputStream)
+{
+	/***********************************************
+	MARKING SCHEME: Advanced graphics techniques
+	DESCRIPTION: Billboarded sprites
+	***********************************************/
+	float3 planeNormal = input[0].Pos.xyz - EyePos.xyz;
+	planeNormal = normalize(planeNormal);
+
+	float3 rightVector = normalize(cross(planeNormal, UpVector.xyz));
+	rightVector /= 2;
+
+	float3 vert[4];
+	vert[0] = input[0].Pos.xyz - rightVector;
+	vert[1] = input[0].Pos.xyz + rightVector;
+	vert[2] = input[0].Pos.xyz - rightVector + UpVector.xyz;
+	vert[3] = input[0].Pos.xyz + rightVector + UpVector.xyz;
+
+	float2 texCoord[4];
+	texCoord[0] = float2(0, 1);
+	texCoord[1] = float2(1, 1);
+	texCoord[2] = float2(0, 0);
+	texCoord[3] = float2(1, 0);
+
+	RTT_PS_INPUT output;
+	for (int i = 0; i < 4; ++i)
+	{
+		//output.worldPos = float4(vert[i], 1.0f);
+		output.Pos = mul(float4(vert[i], 1.0f), View);
+		output.Pos = mul(output.Pos, Projection);
+
+		output.Tex = texCoord[i];
+
+		OutputStream.Append(output);
+	}
+}
+
+[maxvertexcount(3)]
+void GS_Depth(triangle RTT_PS_INPUT input[3], inout TriangleStream<RTT_PS_INPUT> OutputStream)
+{
+	/***********************************************
+	MARKING SCHEME: Simple screen space effect
+	DESCRIPTION: Depth buffer rendering
+	***********************************************/
+	RTT_PS_INPUT output = (RTT_PS_INPUT)0;
+	for (int i = 0; i < 3; ++i)
+	{
+		input[i].Pos.w = 1.0f;
+		output.Pos = mul(input[i].Pos, World);
+		output.Pos = mul(output.Pos, View);
+		output.Pos = mul(output.Pos, Projection);
+
+		output.Tex = input[i].Tex;
+
+		OutputStream.Append(output);
+	}
+}
 
 //--------------------------------------------------------------------------------------
 // Pixel Shader
 //--------------------------------------------------------------------------------------
 
-float4 PS(PS_INPUT IN) : SV_TARGET
+float4 Standard_PS(PS_INPUT IN)
 {
-	LightingResult lit = ComputeLighting(IN.worldPos, normalize(IN.Norm));
+	float4 texNormal = float4(0.0f, 0.0f, 1.0f, 0.0f);
+	float2 texCoords = IN.Tex;
+	const float parallaxScale = 0.1f;
+	if (Material.UseTexture > 0)
+	{
+		if (Material.UseTexture == 2)
+		{
+			/***********************************************
+			MARKING SCHEME: Parallax Mapping
+			DESCRIPTION: Standard parallax mapping
+			***********************************************/
+			float height = txParallax.Sample(samLinear, texCoords).x;
+			float3 viewDir = IN.eyeVectorTS;
 
-	float4 texColor = { 1, 1, 1, 1 };
+			float2 p = viewDir.xy / viewDir.z * height * parallaxScale;
+			texCoords = texCoords - p;
+		}
+		else if (Material.UseTexture == 3 || Material.UseTexture == 4)
+		{
+			/***********************************************
+			MARKING SCHEME: Parallax Mapping
+			DESCRIPTION: Parallax occlusion mapping
+			***********************************************/
+			float height = txParallax.Sample(samLinear, texCoords).x;
+			float3 viewDir = IN.eyeVectorTS;
+
+			float numLayers = lerp(15, 10, abs(dot(float3(0.0f, 0.0f, 1.0f), viewDir)));
+			float2 dTex = parallaxScale * viewDir.xy / viewDir.z / numLayers;
+
+			float currentLayerHeight = 0.0f;
+			[unroll(32)]
+			while (height > currentLayerHeight)
+			{
+				currentLayerHeight += (1.0f / numLayers);
+				texCoords -= dTex;
+
+				height = txParallax.Sample(samLinear, texCoords).x;
+			}
+
+			float2 prevTexCoords = texCoords + dTex;
+			float nextHeight = height - currentLayerHeight;
+			float prevHeight = txParallax.Sample(samLinear, texCoords).x - currentLayerHeight + (1.0f / numLayers);
+
+			float weight = nextHeight / (nextHeight - prevHeight);
+			texCoords = prevTexCoords * weight + (1.0f - weight) * texCoords;
+		}
+
+		/***********************************************
+		MARKING SCHEME: Normal Mapping
+		DESCRIPTION: Map sampling, normal value decompression
+		***********************************************/
+		texNormal = txNormal.Sample(samLinear, texCoords);
+		texNormal = mul(texNormal, 2) - 1;
+		texNormal = normalize(texNormal);
+	}
+
+	if (texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
+		discard;
+
+	LightingResult lit = ComputeLighting(texNormal.xyz, IN.eyeVectorTS, IN.lightVectorTS);
 
 	float4 emissive = Material.Emissive;
 	float4 ambient = Material.Ambient * GlobalAmbient;
 	float4 diffuse = Material.Diffuse * lit.Diffuse;
 	float4 specular = Material.Specular * lit.Specular;
 
-	if (Material.UseTexture)
+	float4 texColor;
+	if (IsTerrain == 0)
 	{
-		texColor = txDiffuse.Sample(samLinear, IN.Tex);
+		texColor = txDiffuse.Sample(samLinear, texCoords);
+	}
+	else
+	{
+		if (IN.worldPos.y < 2.0f-8)
+		{
+			texColor = txLightDirt.Sample(samLinear, texCoords);
+		}
+		else if (IN.worldPos.y < 4.0f-8)
+		{
+			texColor = txGrass.Sample(samLinear, texCoords);
+		}
+		else if (IN.worldPos.y < 6.0f-8)
+		{
+			texColor = txStone.Sample(samLinear, texCoords);
+		}
+		else
+		{
+			texColor = txSnow.Sample(samLinear, texCoords);
+		}
 	}
 
-	float4 finalColor = (emissive + ambient + diffuse + specular) * texColor;
+	float shadowMultiplier;
+	if (Material.UseTexture == 4)
+	{
+		shadowMultiplier = ParallaxSelfShadowing(normalize(IN.lightVectorTS), texCoords, parallaxScale);
+	}
+	else
+	{
+		shadowMultiplier = 1.0f;
+	}
+	return (emissive + ambient + diffuse * shadowMultiplier + specular * shadowMultiplier) * texColor;
+}
 
-	return finalColor;
+float4 PS(PS_INPUT IN) : SV_TARGET
+{
+	return Standard_PS(IN);
+}
+
+float4 PS_BILL(RTT_PS_INPUT IN) : SV_TARGET
+{
+	float4 texColor = txDiffuse.Sample(samLinear, IN.Tex);
+
+	return texColor;
+}
+
+float4 RTT_PS(RTT_PS_INPUT IN) : SV_TARGET
+{
+	float4 texColor = txDiffuse.Sample(samLinear, IN.Tex);
+	float4 bloomColor = txBloom.Sample(samLinear, IN.Tex);
+
+	return texColor + bloomColor;
+}
+
+float4 PS_Blur(RTT_PS_INPUT IN) : SV_TARGET
+{
+	/***********************************************
+	MARKING SCHEME: Advanced graphics techniques
+	DESCRIPTION: Gaussian blur, Motion blur, Bloom
+	***********************************************/
+
+	// Bloom code based on learnopengl.com/Advanced-Lighting/Bloom
+	const float weights[10] = { 0.407027, 0.287027f, 0.2605, 0.23945946f, 0.2081, 
+								0.1616216f, 0.1526, 0.114054f, 0.0952, 0.066216f };
+
+	int r = 1;
+	int width, height;
+	txDiffuse.GetDimensions(width, height);
+	float2 pixelSize;
+	if (isHorizontal == 1)
+	{
+		pixelSize = float2(1.0f / width, 0.0f);
+		r = min(max(abs(mouseChange.x), 1), 10);
+	}
+	else
+	{
+		pixelSize = float2(0.0f, 1.0f / height);
+		r = min(max(abs(mouseChange.y), 1), 10);
+	}
+	float4 bloomColor;
+	float4 totalBloom = float4(0.0f, 0.0f, 0.0f, 0.0f);
+	float2 texCoords;
+	float d = 0;
+	for (int i = 0; i < r; ++i)
+	{
+		texCoords = IN.Tex + float2(pixelSize.x * i, pixelSize.y * i);
+		bloomColor = txDiffuse.Sample(samLinear, texCoords);
+		totalBloom += bloomColor * weights[i];
+
+		texCoords = IN.Tex - float2(pixelSize.x * i, pixelSize.y * i);
+		bloomColor = txDiffuse.Sample(samLinear, texCoords);
+		totalBloom += bloomColor * weights[i];
+
+		d += weights[i];
+	}
+
+	return totalBloom / d / 2;
+}
+
+float4 PS_Depth(RTT_PS_INPUT IN) : SV_TARGET
+{
+	float depth = IN.Pos.z / IN.Pos.w;
+	return float4(depth, depth, depth, 1.0f);
+}
+
+float4 PS_Tint(RTT_PS_INPUT IN) : SV_TARGET
+{
+	/***********************************************
+	MARKING SCHEME: Simple screen space effect
+	DESCRIPTION: Inverse colour tint
+	***********************************************/
+	float4 texColor = txDiffuse.Sample(samLinear, IN.Tex);
+
+	return float4(1 - texColor.r, 1 - texColor.g, 1 - texColor.b, 1 - texColor.a);
 }
 
 //--------------------------------------------------------------------------------------
@@ -224,4 +604,58 @@ float4 PS(PS_INPUT IN) : SV_TARGET
 float4 PSSolid(PS_INPUT input) : SV_Target
 {
 	return vOutputColor;
+}
+
+//--------------------------------------------------------------------------------------
+// Hull Shader
+//--------------------------------------------------------------------------------------
+[domain("tri")]
+[partitioning("fractional_even")]
+[outputtopology("triangle_cw")]
+[outputcontrolpoints(3)]
+[patchconstantfunc("PassThroughConstantHS")]
+[maxtessfactor(10.0)]
+VS_INPUT HS(InputPatch<VS_INPUT, 3> ip, uint i : SV_OutputControlPointID, uint PatchID : SV_PrimitiveID)
+{
+	VS_INPUT output;
+
+	output.Pos = ip[i].Pos;
+	output.Norm = ip[i].Norm;
+	output.Tex = ip[i].Tex;
+	output.Tan = ip[i].Tan;
+	output.Binorm = ip[i].Binorm;
+
+	return output;
+}
+
+HS_CONSTANT_DATA_OUTPUT PassThroughConstantHS(InputPatch<VS_INPUT, 3> ip, uint PatchID : SV_PrimitiveID)
+{
+	HS_CONSTANT_DATA_OUTPUT output;
+
+	output.Edges[0] = tessFactor;
+	output.Edges[1] = tessFactor;
+	output.Edges[2] = tessFactor;
+	output.Inside = tessFactor;
+
+	return output;
+}
+
+//--------------------------------------------------------------------------------------
+// Domain Shader
+//--------------------------------------------------------------------------------------
+
+[domain("tri")]
+VS_INPUT DS(HS_CONSTANT_DATA_OUTPUT input, float3 BarycentricCoordinates : SV_DomainLocation, const OutputPatch<VS_INPUT, 3> TrianglePatch)
+{
+	VS_INPUT output;
+
+	float3 vWorldPos = BarycentricCoordinates.x * TrianglePatch[0].Pos + BarycentricCoordinates.y * TrianglePatch[1].Pos + BarycentricCoordinates.z * TrianglePatch[2].Pos;
+	output.Pos = float4(vWorldPos, 1.0f);
+
+	output.Norm = BarycentricCoordinates.x * TrianglePatch[0].Norm + BarycentricCoordinates.y * TrianglePatch[1].Norm + BarycentricCoordinates.z * TrianglePatch[2].Norm;
+	output.Tex = BarycentricCoordinates.x * TrianglePatch[0].Tex + BarycentricCoordinates.y * TrianglePatch[1].Tex + BarycentricCoordinates.z * TrianglePatch[2].Tex;
+	output.Tan = BarycentricCoordinates.x * TrianglePatch[0].Tan + BarycentricCoordinates.y * TrianglePatch[1].Tan + BarycentricCoordinates.z * TrianglePatch[2].Tan;
+	output.Binorm = BarycentricCoordinates.x * TrianglePatch[0].Binorm + BarycentricCoordinates.y * TrianglePatch[1].Binorm + BarycentricCoordinates.z * TrianglePatch[2].Binorm;
+
+	return output;
 }

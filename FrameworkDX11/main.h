@@ -9,19 +9,20 @@
 #include <DirectXCollision.h>
 #include "DDSTextureLoader.h"
 #include "resource.h"
-#include <iostream>
-
-#include "DrawableGameObject.h"
 #include "structures.h"
-#include "Camera.h"
-#include "Debug.h"
-#include "Spline.h"
+#include <iostream>
 
 #include "imgui-master/imgui.h"
 #include "imgui-master/imgui_impl_win32.h"
 #include "imgui-master/imgui_impl_dx11.h"
 
 #include <vector>
+
+class Camera;
+class DrawableGameObject;
+class CubeGameObject;
+class TerrainGameObject;
+class Debug;
 
 typedef vector<DrawableGameObject*> vecDrawables;
 
@@ -57,21 +58,21 @@ ID3D11Buffer*				g_pMaterialConstantBuffer = nullptr;
 ID3D11Buffer*				g_pTessConstantBuffer = nullptr;
 
 // RTT
-TextureSet					g_pRTTTexture;
+TextureSet					g_RTTTexture;
 ID3D11DepthStencilView*		g_pRTTStencilView = nullptr;
 
 // No MSAA
-TextureSet					g_pNoMSAARTTTexture;
+TextureSet					g_NoMSAARTTTexture;
 ID3D11DepthStencilView*		g_pNoMSAARTTStencilView = nullptr;
 ID3D11Texture2D*			g_pNoMSAADepthStencilTexture = nullptr;
 
 // Sprites
-ID3D11GeometryShader*		g_GeometryBillboardShader = nullptr;
+ID3D11GeometryShader*		g_pGeometryBillboardShader = nullptr;
 ID3D11Buffer*				g_pSpriteVertexBuffer = nullptr;
 ID3D11InputLayout*			g_pSpriteLayout = nullptr;
 ID3D11ShaderResourceView*	g_pSpriteTexture = nullptr;
 const int					g_numberOfSprites = 125;
-SCREEN_VERTEX				g_pSpriteArray[g_numberOfSprites];
+SCREEN_VERTEX				g_SpriteArray[g_numberOfSprites];
 ID3D11Buffer*				g_pSpriteConstantBuffer = nullptr;
 ID3D11PixelShader*			g_pBillPS = nullptr;
 
@@ -82,27 +83,28 @@ ID3D11PixelShader*			g_pQuadPS = nullptr;
 SCREEN_VERTEX				g_ScreenQuad[4];
 
 // Depth Mapping
-TextureSet					g_pDepthTexture;
+TextureSet					g_DepthTexture;
 ID3D11GeometryShader*		g_pDepthGS = nullptr;
 ID3D11PixelShader*			g_pDepthPS = nullptr;
 
 ID3D11PixelShader*			g_pTintPS = nullptr;
 
 // Bloom
-TextureSet					g_pBloomTexture;
-TextureSet					g_pBlurTextureHorizontal;
-TextureSet					g_pBlurTextureVertical;
+TextureSet					g_BloomTexture;
+TextureSet					g_BlurTextureHorizontal;
+TextureSet					g_BlurTextureVertical;
 ID3D11PixelShader*			g_pBlurPS = nullptr;
 ID3D11Buffer*				g_pBlurConstantBuffer = nullptr;
 
 int							g_viewWidth;
 int							g_viewHeight;
 
-DrawableGameObject			g_GameObject;
-Camera						g_Camera;
-Debug						g_Debug;
-//Spline						g_Spline;
-XMFLOAT4					g_pLightPos;
+CubeGameObject*				g_pGameObject;
+TerrainGameObject*			g_pTerrainObject;
+Camera*						g_pCamera;
+Debug*						g_pDebug;
+//Spline					g_Spline;
+XMFLOAT4					g_LightPos;
 
 // ImGui
 int							guiSelection = 0;
@@ -113,7 +115,7 @@ float						guiLightX = 0.0f;
 float						guiLightY = 0.0f;
 float						guiLightZ = 0.0f;
 
-MaterialPropertiesConstantBuffer	g_pMaterial;
+MaterialPropertiesConstantBuffer	g_Material;
 
 ID3D11HullShader*			g_pHullShader = nullptr;
 ID3D11DomainShader*			g_pDomainShader = nullptr;
@@ -122,6 +124,10 @@ D3D11_RASTERIZER_DESC		g_wfdescNormal;
 D3D11_RASTERIZER_DESC		g_wfdescWireframe;
 bool						g_isWireframe = false;
 float						g_tessFactor = 0.1f;
+
+ID3D11PixelShader*			g_pTerrainPS = nullptr;
+TerrainProperties			g_Terrain;
+ID3D11Buffer*				g_pTerrainConstantBuffer = nullptr;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations

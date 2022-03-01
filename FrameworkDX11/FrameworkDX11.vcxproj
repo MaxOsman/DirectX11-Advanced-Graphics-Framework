@@ -352,6 +352,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CubeGameObject.h" />
     <ClInclude Include="DDSTextureLoader.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="DrawableGameObject.h" />
@@ -367,10 +368,12 @@
     <CLInclude Include="resource.h" />
     <ClInclude Include="Spline.h" />
     <ClInclude Include="structures.h" />
+    <ClInclude Include="TerrainGameObject.h" />
     <ResourceCompile Include="Tutorial01.rc" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CubeGameObject.cpp" />
     <ClCompile Include="DDSTextureLoader.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="DrawableGameObject.cpp" />
@@ -382,12 +385,13 @@
     <ClCompile Include="imgui-master\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Spline.cpp" />
+    <ClCompile Include="TerrainGameObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\stone.dds" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaderNormal.fx">
+    <FxCompile Include="shader.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
