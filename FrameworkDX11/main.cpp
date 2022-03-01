@@ -213,7 +213,7 @@ HRESULT InitDevice()
         return hr;
 
     UINT maxQuality = 16;
-    UINT sampleCount = 4;
+    UINT sampleCount = 1;
 
     // Create swap chain
     IDXGIFactory2* dxgiFactory2 = nullptr;

@@ -331,17 +331,16 @@ void GS(triangle VS_INPUT input[3], inout TriangleStream<PS_INPUT> OutputStream)
 		float3 T = mul(float4(input[i].Tan, 0), World).xyz;
 		float3 B = mul(float4(input[i].Binorm, 0), World).xyz;
 		float3x3 TBN = float3x3(T, B, output.Norm);
+		float3x3 TBN_Inv = transpose(TBN);
+
+		output.eyeVectorTS = normalize(mul((EyePosition - output.worldPos).xyz, TBN_Inv));
+		output.lightVectorTS = mul((Lights[0].Position - output.worldPos).xyz, TBN_Inv);
 
 		// Tesselation map
 		float displacement = txParallax.SampleLevel(samLinear, output.Tex, 0).x;
 		displacement = displacement * dScale + dBias;
 		float3 direction = -mul(float3(0, 0, 1), TBN);
-		output.worldPos += float4(direction * displacement, 0);
-
-		TBN = transpose(TBN);
-
-		output.eyeVectorTS = normalize(mul((EyePosition - output.worldPos).xyz, TBN));
-		output.lightVectorTS = mul((Lights[0].Position - output.worldPos).xyz, TBN);
+		//output.worldPos += float4(direction * displacement, 1);
 
 		OutputStream.Append(output);
 	}
@@ -376,10 +375,8 @@ void GS_BILL(point RTT_PS_INPUT input[1], inout TriangleStream<RTT_PS_INPUT> Out
 	RTT_PS_INPUT output;
 	for (int i = 0; i < 4; ++i)
 	{
-		//output.worldPos = float4(vert[i], 1.0f);
 		output.Pos = mul(float4(vert[i], 1.0f), View);
 		output.Pos = mul(output.Pos, Projection);
-
 		output.Tex = texCoord[i];
 
 		OutputStream.Append(output);
