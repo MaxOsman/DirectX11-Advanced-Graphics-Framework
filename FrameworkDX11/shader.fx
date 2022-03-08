@@ -26,6 +26,7 @@ Texture2D txStone : register(t4);
 Texture2D txGrass : register(t5);
 Texture2D txLightDirt : register(t6);
 Texture2D txSnow : register(t7);
+Texture2D txHeightMap : register(t8);
 
 SamplerState samLinear : register(s0);
 
@@ -46,7 +47,7 @@ struct _Material
 	float4  Specular;       // 16 bytes
 							//----------------------------------- (16 byte boundary)
 	float   SpecularPower;  // 4 bytes
-	int    UseTexture;		// 4 bytes
+	int		UseTexture;		// 4 bytes
 	float2  Padding;        // 8 bytes
 							//----------------------------------- (16 byte boundary)
 };  // Total:               // 80 bytes ( 5 * 16 )
@@ -305,6 +306,32 @@ RTT_PS_INPUT RTT_VS( RTT_VS_INPUT input )
 	return output;
 }
 
+PS_INPUT Terrain_VS(VS_INPUT input)
+{
+	PS_INPUT output;
+
+	output.Pos = mul(input.Pos, World);
+	output.worldPos = output.Pos;
+	output.Pos = mul(output.Pos, View);
+	output.Pos = mul(output.Pos, Projection);
+
+	output.Tex = input.Tex;
+
+	// multiply the normal by the world transform (to go from model space to world space)
+	output.Norm = mul(float4(input.Norm, 0), World).xyz;
+
+	// Week 2 lecture slides
+	float3 T = mul(float4(input.Tan, 0), World).xyz;
+	float3 B = mul(float4(input.Binorm, 0), World).xyz;
+	float3x3 TBN = float3x3(T, B, output.Norm);
+	float3x3 TBN_Inv = transpose(TBN);
+
+	output.eyeVectorTS = normalize(mul((EyePosition - output.worldPos).xyz, TBN_Inv));
+	output.lightVectorTS = mul((Lights[0].Position - output.worldPos).xyz, TBN_Inv);
+
+	return output;
+}
+
 //--------------------------------------------------------------------------------------
 // Geometry Shaders
 //--------------------------------------------------------------------------------------
@@ -313,8 +340,8 @@ RTT_PS_INPUT RTT_VS( RTT_VS_INPUT input )
 void GS(triangle VS_INPUT input[3], inout TriangleStream<PS_INPUT> OutputStream)
 {
 	PS_INPUT output = (PS_INPUT)0;
-	const float dScale = 5.0f;
-	const float dBias = 5.0f;
+	//const float dScale = 5.0f;
+	//const float dBias = 5.0f;
 	for (int i = 0; i < 3; ++i)
 	{
 		output.Pos = mul(input[i].Pos, World);
@@ -337,10 +364,10 @@ void GS(triangle VS_INPUT input[3], inout TriangleStream<PS_INPUT> OutputStream)
 		output.lightVectorTS = mul((Lights[0].Position - output.worldPos).xyz, TBN_Inv);
 
 		// Tesselation map
-		float displacement = txParallax.SampleLevel(samLinear, output.Tex, 0).x;
+		/*float displacement = txParallax.SampleLevel(samLinear, output.Tex, 0).x;
 		displacement = displacement * dScale + dBias;
 		float3 direction = -mul(float3(0, 0, 1), TBN);
-		//output.worldPos += float4(direction * displacement, 1);
+		output.worldPos += float4(direction * displacement, 1);*/
 
 		OutputStream.Append(output);
 	}
@@ -617,10 +644,13 @@ VS_INPUT HS(InputPatch<VS_INPUT, 3> ip, uint i : SV_OutputControlPointID, uint P
 	VS_INPUT output;
 
 	output.Pos = ip[i].Pos;
+	//output.worldPos = ip[i].worldPos;
 	output.Norm = ip[i].Norm;
 	output.Tex = ip[i].Tex;
-	output.Tan = ip[i].Tan;
 	output.Binorm = ip[i].Binorm;
+	output.Tan = ip[i].Tan;
+	//output.eyeVectorTS = ip[i].eyeVectorTS;
+	//output.lightVectorTS = ip[i].lightVectorTS;
 
 	return output;
 }
@@ -642,17 +672,43 @@ HS_CONSTANT_DATA_OUTPUT PassThroughConstantHS(InputPatch<VS_INPUT, 3> ip, uint P
 //--------------------------------------------------------------------------------------
 
 [domain("tri")]
-VS_INPUT DS(HS_CONSTANT_DATA_OUTPUT input, float3 BarycentricCoordinates : SV_DomainLocation, const OutputPatch<VS_INPUT, 3> TrianglePatch)
+PS_INPUT DS(HS_CONSTANT_DATA_OUTPUT input, float3 BarycentricCoordinates : SV_DomainLocation, const OutputPatch<VS_INPUT, 3> TrianglePatch)
 {
-	VS_INPUT output;
+	PS_INPUT output;
 
-	float3 vWorldPos = BarycentricCoordinates.x * TrianglePatch[0].Pos + BarycentricCoordinates.y * TrianglePatch[1].Pos + BarycentricCoordinates.z * TrianglePatch[2].Pos;
-	output.Pos = float4(vWorldPos, 1.0f);
+	float3 vPos = BarycentricCoordinates.x * TrianglePatch[0].Pos + BarycentricCoordinates.y * TrianglePatch[1].Pos + BarycentricCoordinates.z * TrianglePatch[2].Pos;
+	output.Pos = float4(vPos, 1.0f);
 
 	output.Norm = BarycentricCoordinates.x * TrianglePatch[0].Norm + BarycentricCoordinates.y * TrianglePatch[1].Norm + BarycentricCoordinates.z * TrianglePatch[2].Norm;
 	output.Tex = BarycentricCoordinates.x * TrianglePatch[0].Tex + BarycentricCoordinates.y * TrianglePatch[1].Tex + BarycentricCoordinates.z * TrianglePatch[2].Tex;
-	output.Tan = BarycentricCoordinates.x * TrianglePatch[0].Tan + BarycentricCoordinates.y * TrianglePatch[1].Tan + BarycentricCoordinates.z * TrianglePatch[2].Tan;
-	output.Binorm = BarycentricCoordinates.x * TrianglePatch[0].Binorm + BarycentricCoordinates.y * TrianglePatch[1].Binorm + BarycentricCoordinates.z * TrianglePatch[2].Binorm;
+	float3 tan = BarycentricCoordinates.x * TrianglePatch[0].Tan + BarycentricCoordinates.y * TrianglePatch[1].Tan + BarycentricCoordinates.z * TrianglePatch[2].Tan;
+	float3 binorm = BarycentricCoordinates.x * TrianglePatch[0].Binorm + BarycentricCoordinates.y * TrianglePatch[1].Binorm + BarycentricCoordinates.z * TrianglePatch[2].Binorm;
+
+	//if (IsTerrain == 1)
+	//{
+	//	// Tesselation map
+	//	const float dScale = 5.0f;
+	//	const float dBias = 0.0f;
+	//	float displacement = txHeightMap.SampleLevel(samLinear, output.Tex, 0).x;
+	//	displacement = (displacement * dScale) + dBias;
+	//	float3 direction = -output.Norm;
+	//	output.Pos += float4(direction * displacement, 0);
+	//}
+	
+	// multiply the normal by the world transform (to go from model space to world space)
+	output.Norm = mul(float4(output.Norm, 0), World).xyz;
+	float3 T = mul(float4(tan, 0), World).xyz;
+	float3 B = mul(float4(binorm, 0), World).xyz;
+	float3x3 TBN = float3x3(T, B, output.Norm);
+	float3x3 TBN_Inv = transpose(TBN);
+
+	output.Pos = mul(output.Pos, World);
+	output.worldPos = output.Pos;
+	output.Pos = mul(output.Pos, View);
+	output.Pos = mul(output.Pos, Projection);
+
+	output.eyeVectorTS = normalize(mul((EyePosition - output.worldPos).xyz, TBN_Inv));
+	output.lightVectorTS = mul((Lights[0].Position - output.worldPos).xyz, TBN_Inv);
 
 	return output;
 }

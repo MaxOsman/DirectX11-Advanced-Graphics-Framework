@@ -480,6 +480,22 @@ HRESULT	InitMesh()
         return hr;
     }
 
+    // Compile the terrain vertex shader
+    ID3DBlob* pTerrainVSBlob = nullptr;
+    hr = CompileShaderFromFile(L"shader.fx", "Terrain_VS", "vs_5_0", &pTerrainVSBlob);
+    if (FAILED(hr))
+    {
+        MessageBox(nullptr, L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+        return hr;
+    }
+    // Create the RTT vertex shader
+    hr = g_pd3dDevice->CreateVertexShader(pTerrainVSBlob->GetBufferPointer(), pTerrainVSBlob->GetBufferSize(), nullptr, &g_pTerrainVS);
+    if (FAILED(hr))
+    {
+        pTerrainVSBlob->Release();
+        return hr;
+    }
+
 
     // Compile the hull shader
     ID3DBlob* pHSBlob = nullptr;
@@ -767,9 +783,10 @@ HRESULT	InitWorld(int width, int height)
     g_pTerrainObject = new TerrainGameObject();
 
     g_pGameObject->setPosition({ 0.0f, 0.0f, 0.0f });
-    g_pTerrainObject->setPosition({ 0.0f, -8.0f, 0.0f });
+    g_pTerrainObject->setPosition({ 0.0f, -5.0f, 0.0f });
+    g_pTerrainObject->setScale({0.2f, 0.2f, 0.2f});
 
-    g_LightPos = { 0.0f, 0.0f, -2.0f, 0.0f };
+    g_LightPos = { 0.0f, 0.0f, -4.0f, 0.0f };
 
 	return S_OK;
 }
@@ -853,6 +870,7 @@ void CleanupDevice()
     if (g_pBlurPS) g_pBlurPS->Release();
     if (g_pBlurConstantBuffer) g_pBlurConstantBuffer->Release();
     if (g_pTerrainConstantBuffer) g_pTerrainConstantBuffer->Release();
+    if (g_pTerrainVS) g_pTerrainVS->Release();
 
     ID3D11Debug* debugDevice = nullptr;
     g_pd3dDevice->QueryInterface(__uuidof(ID3D11Debug), reinterpret_cast<void**>(&debugDevice));
@@ -1003,17 +1021,17 @@ void setupConstantBuffers()
     lightProperties.Lights[0].LightType = PointLight;
     lightProperties.Lights[0].Color = XMFLOAT4(Colors::White);
     lightProperties.Lights[0].SpotAngle = XMConvertToRadians(45.0f);
-    lightProperties.Lights[0].ConstantAttenuation = 0.2;
-    lightProperties.Lights[0].LinearAttenuation = 0.2;
-    lightProperties.Lights[0].QuadraticAttenuation = 0.2;
+    lightProperties.Lights[0].ConstantAttenuation = 0.18;
+    lightProperties.Lights[0].LinearAttenuation = 0.18;
+    lightProperties.Lights[0].QuadraticAttenuation = 0.18;
     lightProperties.Lights[0].Position = { g_LightPos.x + guiLightX, g_LightPos.y + guiLightY, g_LightPos.z + guiLightZ, 0.0f };
     XMVECTOR LightDirection = XMVectorSet(-(g_LightPos.x + guiLightX), -(g_LightPos.y + guiLightY), -(g_LightPos.z + guiLightZ), 0.0f);
     LightDirection = XMVector3Normalize(LightDirection);
     XMStoreFloat4(&lightProperties.Lights[0].Direction, LightDirection);
 
     g_pImmediateContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &lightProperties, 0, 0);
-    g_pImmediateContext->GSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
     g_pImmediateContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+    g_pImmediateContext->DSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
 
     // Set up billboard
     BillboardConstantBuffer billboardProperties;
@@ -1049,12 +1067,20 @@ void setupConstantBuffers()
     g_Terrain.IsTerrain = 0;
     g_pImmediateContext->UpdateSubresource(g_pTerrainConstantBuffer, 0, nullptr, &g_Terrain, 0, 0);
     g_pImmediateContext->PSSetConstantBuffers(6, 1, &g_pTerrainConstantBuffer);
+    g_pImmediateContext->DSSetConstantBuffers(6, 1, &g_pTerrainConstantBuffer);
 }
 
 void DrawScene(ConstantBuffer* cb)
 {
     g_Terrain.IsTerrain = 0;
     g_pImmediateContext->UpdateSubresource(g_pTerrainConstantBuffer, 0, nullptr, &g_Terrain, 0, 0);
+
+    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+    g_pImmediateContext->GSSetShader(NULL, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
+    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
+    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
 
     XMMATRIX mGO = XMLoadFloat4x4(g_pGameObject->getTransform());
     cb->mWorld = XMMatrixTranspose(mGO);
@@ -1072,6 +1098,12 @@ void DrawScene(ConstantBuffer* cb)
 
 void DrawSceneSprites()
 {
+    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
+    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
+    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
+    g_pImmediateContext->GSSetShader(g_pGeometryBillboardShader, nullptr, 0);
+    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
+
     UINT stride = sizeof(SCREEN_VERTEX);
     UINT offset = 0;
     ID3D11Buffer* pSpriteBuffers[1] = { g_pSpriteVertexBuffer };
@@ -1096,20 +1128,7 @@ void Bloom(ConstantBuffer* cb)
     g_pImmediateContext->ClearDepthStencilView(g_pNoMSAARTTStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     // Draw scene to target
-    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
-    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
-    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
-    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
-
     DrawScene(cb);
-
-    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
-    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
-    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_pGeometryBillboardShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
 
     DrawSceneSprites();
 
@@ -1172,20 +1191,7 @@ void RenderScreenQuad(ConstantBuffer* cb)
     g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
     // Draw scene to RTT target
-    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
-    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
-    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
-    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
-
     DrawScene(cb);
-
-    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_pGeometryBillboardShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
-    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
-    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
 
     DrawSceneSprites();
 
@@ -1251,21 +1257,9 @@ void DepthMap(ConstantBuffer* cb)
     g_pImmediateContext->ClearDepthStencilView(g_pNoMSAARTTStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     g_pImmediateContext->OMSetRenderTargets(1, &g_DepthTexture.view, g_pNoMSAARTTStencilView);
 
-    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_pDepthGS, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pDepthPS, nullptr, 0);
-    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
-    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
-
-    g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
-
     // Disabled for now to prevent error messages
     // I doubt I'll need this anyway
     //DrawScene(cb);
-
-    g_pImmediateContext->GSSetShader(g_pGeometryBillboardShader, nullptr, 0);
-    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
-    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
 
     DrawSceneSprites();
 }
@@ -1309,37 +1303,23 @@ void Render()
     cb1.mProjection = XMMatrixTranspose(XMLoadFloat4x4(&p));
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
     g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
+    g_pImmediateContext->DSSetConstantBuffers(0, 1, &g_pConstantBuffer);
 
     setupConstantBuffers();
 
     // Draw functions
-    if (guiMotionBlur)
+    /*if (guiMotionBlur)
     {
         Bloom(&cb1);
     }
-    DepthMap(&cb1);
+    DepthMap(&cb1);*/
 
     // Clear the back buffer
     g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, Colors::MidnightBlue);
     g_pImmediateContext->ClearDepthStencilView(g_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
     g_pImmediateContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 
-    g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_GeometryShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
-    g_pImmediateContext->HSSetShader(g_pHullShader, nullptr, 0);
-    g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
-
-    g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
-
     DrawScene(&cb1);
-
-    g_pImmediateContext->VSSetShader(g_pQuadVS, nullptr, 0);
-    g_pImmediateContext->GSSetShader(g_pGeometryBillboardShader, nullptr, 0);
-    g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
-    g_pImmediateContext->HSSetShader(NULL, nullptr, 0);
-    g_pImmediateContext->DSSetShader(NULL, nullptr, 0);
-
     DrawSceneSprites();
 
     RenderScreenQuad(&cb1);

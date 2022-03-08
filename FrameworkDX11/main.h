@@ -125,7 +125,7 @@ D3D11_RASTERIZER_DESC		g_wfdescWireframe;
 bool						g_isWireframe = false;
 float						g_tessFactor = 0.1f;
 
-ID3D11PixelShader*			g_pTerrainPS = nullptr;
+ID3D11VertexShader*			g_pTerrainVS = nullptr;
 TerrainProperties			g_Terrain;
 ID3D11Buffer*				g_pTerrainConstantBuffer = nullptr;
 

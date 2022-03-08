@@ -1,16 +1,19 @@
 #include "TerrainGameObject.h"
 #include <fstream>
 
-#define GRID_WIDTH 32
-#define GRID_DEPTH 32
-#define HEIGHT_SCALE 20.0f
+#define GRID_WIDTH 256
+#define GRID_DEPTH 256
+#define HEIGHT_SCALE 10.0f
+#define GRID_SCALE 1.0f
 
 TerrainGameObject::TerrainGameObject() : DrawableGameObject()
 {
     for (unsigned int i = 0; i < TERRAIN_TEX_SIZE; ++i)
     {
-        m_TerrainTextures[i] = nullptr;
+        m_pTerrainTextures[i] = nullptr;
     }
+
+    m_pHeightTexture = nullptr;
 }
 
 TerrainGameObject::~TerrainGameObject()
@@ -19,18 +22,20 @@ TerrainGameObject::~TerrainGameObject()
 
     for (unsigned int i = 0; i < TERRAIN_TEX_SIZE; ++i)
     {
-        if (m_TerrainTextures[i])
-            m_TerrainTextures[i]->Release();
-        m_TerrainTextures[i] = nullptr;
+        if (m_pTerrainTextures[i])
+            m_pTerrainTextures[i]->Release();
+        m_pTerrainTextures[i] = nullptr;
     }
+
+    if (m_pHeightTexture)
+        m_pHeightTexture->Release();
+    m_pHeightTexture = nullptr;
 }
 
 HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext)
 {
 	vector<XMFLOAT3> positions;
-	vector<XMFLOAT3> normals;
 	vector<XMFLOAT2> texCoords;
-    //vector<SimpleVertex> finalVertices;
 
     vector<float>* heights = LoadHeightMap();
 
@@ -43,7 +48,6 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
                                 1.0f * j - GRID_DEPTH / 2 });
         }
     }
-    normals.push_back({ 0.0f, 1.0f, 0.0f });
     texCoords.push_back({ 0.0f, 0.0f });
     texCoords.push_back({ 1.0f, 0.0f });
     texCoords.push_back({ 0.0f, 1.0f });
@@ -55,12 +59,12 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
     {
         for (unsigned int j = 0; j < GRID_DEPTH - 1; ++j)
         {
-			finalVertices[6 * (i * GRID_WIDTH + j) + 0] = { positions.at(i * GRID_WIDTH + j), normals.at(0), texCoords.at(0) };
-			finalVertices[6 * (i * GRID_WIDTH + j) + 1] = { positions.at(i * GRID_WIDTH + j + 1), normals.at(0), texCoords.at(1) };
-			finalVertices[6 * (i * GRID_WIDTH + j) + 2] = { positions.at((i + 1) * GRID_WIDTH + j), normals.at(0), texCoords.at(2) };
-			finalVertices[6 * (i * GRID_WIDTH + j) + 3] = { positions.at((i + 1) * GRID_WIDTH + j), normals.at(0), texCoords.at(2) };
-			finalVertices[6 * (i * GRID_WIDTH + j) + 4] = { positions.at(i * GRID_WIDTH + j + 1), normals.at(0), texCoords.at(1) };
-			finalVertices[6 * (i * GRID_WIDTH + j) + 5] = { positions.at((i + 1) * GRID_WIDTH + j + 1), normals.at(0), texCoords.at(3) };
+            finalVertices[6 * (i * GRID_WIDTH + j) + 0] = { positions.at(i * GRID_WIDTH + j), {0,0,0}, texCoords.at(0) };
+			finalVertices[6 * (i * GRID_WIDTH + j) + 1] = { positions.at(i * GRID_WIDTH + j + 1), {0,0,0}, texCoords.at(1) };
+			finalVertices[6 * (i * GRID_WIDTH + j) + 2] = { positions.at((i + 1) * GRID_WIDTH + j), {0,0,0}, texCoords.at(2) };
+			finalVertices[6 * (i * GRID_WIDTH + j) + 3] = { positions.at((i + 1) * GRID_WIDTH + j), {0,0,0}, texCoords.at(2) };
+			finalVertices[6 * (i * GRID_WIDTH + j) + 4] = { positions.at(i * GRID_WIDTH + j + 1), {0,0,0}, texCoords.at(1) };
+			finalVertices[6 * (i * GRID_WIDTH + j) + 5] = { positions.at((i + 1) * GRID_WIDTH + j + 1), {0,0,0}, texCoords.at(3) };
         }
     }
 
@@ -80,11 +84,12 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
 		return hr;
 
 	// load and setup textures
-	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\darkdirt.dds", nullptr, &m_TerrainTextures[0]);
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\grass.dds", nullptr, &m_TerrainTextures[1]);
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\lightdirt.dds", nullptr, &m_TerrainTextures[2]);
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\snow.dds", nullptr, &m_TerrainTextures[3]);
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\stone.dds", nullptr, &m_TerrainTextures[4]);
+	hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\darkdirt.dds", nullptr, &m_pTerrainTextures[0]);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\grass.dds", nullptr, &m_pTerrainTextures[1]);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\lightdirt.dds", nullptr, &m_pTerrainTextures[2]);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\snow.dds", nullptr, &m_pTerrainTextures[3]);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\stone.dds", nullptr, &m_pTerrainTextures[4]);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\rock_height.dds", nullptr, &m_pHeightTexture);
 	if (FAILED(hr))
 		return hr;
 
@@ -100,7 +105,6 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
 	hr = pd3dDevice->CreateSamplerState(&sampDesc, &m_pSamplerLinear);
 
 	positions.clear();
-	normals.clear();
 	texCoords.clear();
     delete[] finalVertices;
     heights->clear();
@@ -116,7 +120,7 @@ vector<float>* TerrainGameObject::LoadHeightMap()
 
     // Open the file.
     ifstream inFile;
-    inFile.open("Resources\\Terrain\\terrain.raw", ios_base::binary);
+    inFile.open("Resources\\rock_height.dds", ios_base::binary);
 
     if (inFile)
     {
@@ -128,7 +132,7 @@ vector<float>* TerrainGameObject::LoadHeightMap()
     vector<float>* tempHeights = new vector<float>;
     for (UINT i = 0; i < GRID_WIDTH * GRID_DEPTH; ++i)
     {
-        tempHeights->push_back((in[i] / 255.0f) * HEIGHT_SCALE);
+        tempHeights->push_back((1 - (in[i] / 255.0f)) * HEIGHT_SCALE);
     }
 
     return tempHeights;
@@ -152,11 +156,12 @@ void TerrainGameObject::draw(ID3D11DeviceContext* pContext)
     //pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 
-    pContext->PSSetShaderResources(4, 1, &m_TerrainTextures[4]);
-    pContext->PSSetShaderResources(5, 1, &m_TerrainTextures[1]);
-    pContext->PSSetShaderResources(6, 1, &m_TerrainTextures[2]);
-    pContext->PSSetShaderResources(7, 1, &m_TerrainTextures[3]);
-    pContext->GSSetSamplers(0, 1, &m_pSamplerLinear);
+    pContext->PSSetShaderResources(4, 1, &m_pTerrainTextures[4]);
+    pContext->PSSetShaderResources(5, 1, &m_pTerrainTextures[1]);
+    pContext->PSSetShaderResources(6, 1, &m_pTerrainTextures[2]);
+    pContext->PSSetShaderResources(7, 1, &m_pTerrainTextures[3]);
+    pContext->DSSetShaderResources(8, 1, &m_pHeightTexture);
+    pContext->DSSetSamplers(0, 1, &m_pSamplerLinear);
     pContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
 
     pContext->Draw(GRID_WIDTH * GRID_DEPTH * 6, 0);

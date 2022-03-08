@@ -19,5 +19,6 @@ public:
 private:
 	vector<float>* LoadHeightMap();
 
-	ID3D11ShaderResourceView* m_TerrainTextures[TERRAIN_TEX_SIZE];
+	ID3D11ShaderResourceView* m_pTerrainTextures[TERRAIN_TEX_SIZE];
+	ID3D11ShaderResourceView* m_pHeightTexture;
 };
