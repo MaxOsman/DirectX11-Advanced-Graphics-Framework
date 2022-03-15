@@ -4,7 +4,6 @@
 #define GRID_WIDTH 256
 #define GRID_DEPTH 256
 #define HEIGHT_SCALE 10.0f
-#define GRID_SCALE 1.0f
 
 TerrainGameObject::TerrainGameObject() : DrawableGameObject()
 {
@@ -132,7 +131,7 @@ vector<float>* TerrainGameObject::LoadHeightMap()
     vector<float>* tempHeights = new vector<float>;
     for (UINT i = 0; i < GRID_WIDTH * GRID_DEPTH; ++i)
     {
-        tempHeights->push_back((1 - (in[i] / 255.0f)) * HEIGHT_SCALE);
+        tempHeights->push_back((1 - (in[i] / 255.0f)) * height);
     }
 
     return tempHeights;

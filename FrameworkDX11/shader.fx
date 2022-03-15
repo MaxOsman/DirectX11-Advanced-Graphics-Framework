@@ -683,17 +683,6 @@ PS_INPUT DS(HS_CONSTANT_DATA_OUTPUT input, float3 BarycentricCoordinates : SV_Do
 	output.Tex = BarycentricCoordinates.x * TrianglePatch[0].Tex + BarycentricCoordinates.y * TrianglePatch[1].Tex + BarycentricCoordinates.z * TrianglePatch[2].Tex;
 	float3 tan = BarycentricCoordinates.x * TrianglePatch[0].Tan + BarycentricCoordinates.y * TrianglePatch[1].Tan + BarycentricCoordinates.z * TrianglePatch[2].Tan;
 	float3 binorm = BarycentricCoordinates.x * TrianglePatch[0].Binorm + BarycentricCoordinates.y * TrianglePatch[1].Binorm + BarycentricCoordinates.z * TrianglePatch[2].Binorm;
-
-	//if (IsTerrain == 1)
-	//{
-	//	// Tesselation map
-	//	const float dScale = 5.0f;
-	//	const float dBias = 0.0f;
-	//	float displacement = txHeightMap.SampleLevel(samLinear, output.Tex, 0).x;
-	//	displacement = (displacement * dScale) + dBias;
-	//	float3 direction = -output.Norm;
-	//	output.Pos += float4(direction * displacement, 0);
-	//}
 	
 	// multiply the normal by the world transform (to go from model space to world space)
 	output.Norm = mul(float4(output.Norm, 0), World).xyz;
@@ -703,6 +692,19 @@ PS_INPUT DS(HS_CONSTANT_DATA_OUTPUT input, float3 BarycentricCoordinates : SV_Do
 	float3x3 TBN_Inv = transpose(TBN);
 
 	output.Pos = mul(output.Pos, World);
+
+	//if (IsTerrain == 1)
+	//{
+	//	// Tesselation map
+	//	const float dScale = 10.0f;
+	//	const float dBias = 0.0f;
+	//	float2 texCoord = normalize(float2(output.Pos.x / 256.0f / 0.2f + 0.5, output.Pos.z / 256.0f / 0.2f + 0.5));
+	//	float displacement = txHeightMap.SampleLevel(samLinear, texCoord, 0).x;
+	//	displacement = (displacement * dScale) + dBias;
+	//	float3 direction = -output.Norm;
+	//	output.Pos += float4(direction * displacement, 0);
+	//}
+
 	output.worldPos = output.Pos;
 	output.Pos = mul(output.Pos, View);
 	output.Pos = mul(output.Pos, Projection);

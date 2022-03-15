@@ -128,6 +128,7 @@ float						g_tessFactor = 0.1f;
 ID3D11VertexShader*			g_pTerrainVS = nullptr;
 TerrainProperties			g_Terrain;
 ID3D11Buffer*				g_pTerrainConstantBuffer = nullptr;
+float						g_heightFactor = 5.0f;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations

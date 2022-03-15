@@ -1332,6 +1332,8 @@ void Render()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
+    float prevHeight = g_heightFactor;
+
     // The window
     ImGui::Begin("Options");
     static const char* items[]{ "Diffuse", "Normals", "Parallax", "Parallax Occlusion", "Self-Shadowing POM"};
@@ -1345,7 +1347,14 @@ void Render()
     ImGui::Checkbox("Enable Rotation", &guiRotation);
     ImGui::Checkbox("Enable Wireframe", &g_isWireframe);
     ImGui::SliderFloat("Tesselation Factor", &g_tessFactor, 0.001f, 10.0f);
+    ImGui::SliderFloat("Height Factor", &g_heightFactor, 0.0f, 20.0f);
     ImGui::End();
+
+    if (prevHeight != g_heightFactor)
+    {
+        g_pTerrainObject->SetHeight(g_heightFactor);
+        g_pTerrainObject->initMesh(g_pd3dDevice, g_pImmediateContext);
+    }
 
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
