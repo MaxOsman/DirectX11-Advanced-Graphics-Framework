@@ -20,9 +20,16 @@ public:
 
 private:
 	vector<float>* LoadHeightMap();
+	void DiamondSquareAlgorithm();
+	void DiamondStage(int sideLength);
+	void SquareStage(int sideLength);
+	void Average(int x, int y, int sideLength);
 
 	ID3D11ShaderResourceView* m_pTerrainTextures[TERRAIN_TEX_SIZE];
 	ID3D11ShaderResourceView* m_pHeightTexture;
+	ID3D11ShaderResourceView* m_pNormalTexture;
 
 	float height = 10.0f;
+	int range = 32;
+	float** heightArray;
 };

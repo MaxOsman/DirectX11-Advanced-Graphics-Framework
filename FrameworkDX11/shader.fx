@@ -644,13 +644,10 @@ VS_INPUT HS(InputPatch<VS_INPUT, 3> ip, uint i : SV_OutputControlPointID, uint P
 	VS_INPUT output;
 
 	output.Pos = ip[i].Pos;
-	//output.worldPos = ip[i].worldPos;
 	output.Norm = ip[i].Norm;
 	output.Tex = ip[i].Tex;
 	output.Binorm = ip[i].Binorm;
 	output.Tan = ip[i].Tan;
-	//output.eyeVectorTS = ip[i].eyeVectorTS;
-	//output.lightVectorTS = ip[i].lightVectorTS;
 
 	return output;
 }
@@ -659,10 +656,14 @@ HS_CONSTANT_DATA_OUTPUT PassThroughConstantHS(InputPatch<VS_INPUT, 3> ip, uint P
 {
 	HS_CONSTANT_DATA_OUTPUT output;
 
-	output.Edges[0] = tessFactor;
-	output.Edges[1] = tessFactor;
-	output.Edges[2] = tessFactor;
-	output.Inside = tessFactor;
+	float4 worldPos = mul(ip[0].Pos, World);
+	float distance = length(EyePos - worldPos);
+
+	float factor = max(10 - distance / tessFactor, 0.01);
+	output.Edges[0] = factor;
+	output.Edges[1] = factor;
+	output.Edges[2] = factor;
+	output.Inside = factor;
 
 	return output;
 }
@@ -678,32 +679,38 @@ PS_INPUT DS(HS_CONSTANT_DATA_OUTPUT input, float3 BarycentricCoordinates : SV_Do
 
 	float3 vPos = BarycentricCoordinates.x * TrianglePatch[0].Pos + BarycentricCoordinates.y * TrianglePatch[1].Pos + BarycentricCoordinates.z * TrianglePatch[2].Pos;
 	output.Pos = float4(vPos, 1.0f);
+	output.Tex = BarycentricCoordinates.x * TrianglePatch[0].Tex + BarycentricCoordinates.y * TrianglePatch[1].Tex + BarycentricCoordinates.z * TrianglePatch[2].Tex;
 
 	output.Norm = BarycentricCoordinates.x * TrianglePatch[0].Norm + BarycentricCoordinates.y * TrianglePatch[1].Norm + BarycentricCoordinates.z * TrianglePatch[2].Norm;
-	output.Tex = BarycentricCoordinates.x * TrianglePatch[0].Tex + BarycentricCoordinates.y * TrianglePatch[1].Tex + BarycentricCoordinates.z * TrianglePatch[2].Tex;
 	float3 tan = BarycentricCoordinates.x * TrianglePatch[0].Tan + BarycentricCoordinates.y * TrianglePatch[1].Tan + BarycentricCoordinates.z * TrianglePatch[2].Tan;
 	float3 binorm = BarycentricCoordinates.x * TrianglePatch[0].Binorm + BarycentricCoordinates.y * TrianglePatch[1].Binorm + BarycentricCoordinates.z * TrianglePatch[2].Binorm;
 	
 	// multiply the normal by the world transform (to go from model space to world space)
 	output.Norm = mul(float4(output.Norm, 0), World).xyz;
+	output.Pos = mul(output.Pos, World);
+
+	if (IsTerrain == 1)
+	{
+		output.Pos = float4(output.Pos.xyz + output.Norm * 0.0f, 1.0f);
+
+		//	// Tesselation map
+		//	const float dScale = 5.0f;
+		//	const float dBias = -3.0f;
+		//	float2 texCoord = float2(output.Pos.x / 256.0f / 0.2f + 0.5, output.Pos.z / 256.0f / 0.2f + 0.5);
+		//	output.Norm = txNormal.SampleLevel(samLinear, texCoord, 0).x;
+		//	output.Norm = output.Norm * 2 - 1;
+		//	output.Norm = normalize(output.Norm);
+		//	float displacement = txHeightMap.SampleLevel(samLinear, texCoord, 0).x;
+		//	displacement = displacement * dScale + dBias;
+		//	//float3 direction = -normalize(output.Norm);
+		//	float3 direction = float3(0, -1, 0);
+		//	output.Pos += float4(direction * displacement, 0);
+	}
+
 	float3 T = mul(float4(tan, 0), World).xyz;
 	float3 B = mul(float4(binorm, 0), World).xyz;
 	float3x3 TBN = float3x3(T, B, output.Norm);
 	float3x3 TBN_Inv = transpose(TBN);
-
-	output.Pos = mul(output.Pos, World);
-
-	//if (IsTerrain == 1)
-	//{
-	//	// Tesselation map
-	//	const float dScale = 10.0f;
-	//	const float dBias = 0.0f;
-	//	float2 texCoord = normalize(float2(output.Pos.x / 256.0f / 0.2f + 0.5, output.Pos.z / 256.0f / 0.2f + 0.5));
-	//	float displacement = txHeightMap.SampleLevel(samLinear, texCoord, 0).x;
-	//	displacement = (displacement * dScale) + dBias;
-	//	float3 direction = -output.Norm;
-	//	output.Pos += float4(direction * displacement, 0);
-	//}
 
 	output.worldPos = output.Pos;
 	output.Pos = mul(output.Pos, View);

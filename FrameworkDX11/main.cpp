@@ -783,7 +783,7 @@ HRESULT	InitWorld(int width, int height)
     g_pTerrainObject = new TerrainGameObject();
 
     g_pGameObject->setPosition({ 0.0f, 0.0f, 0.0f });
-    g_pTerrainObject->setPosition({ 0.0f, -5.0f, 0.0f });
+    g_pTerrainObject->setPosition({ 0.0f, -10.0f, 0.0f });
     g_pTerrainObject->setScale({0.2f, 0.2f, 0.2f});
 
     g_LightPos = { 0.0f, 0.0f, -4.0f, 0.0f };
@@ -1038,6 +1038,7 @@ void setupConstantBuffers()
     billboardProperties.EyePos = g_pCamera->GetEye();
     billboardProperties.UpVector = g_pCamera->GetUp();
     g_pImmediateContext->UpdateSubresource(g_pSpriteConstantBuffer, 0, nullptr, &billboardProperties, 0, 0);
+    g_pImmediateContext->HSSetConstantBuffers(3, 1, &g_pSpriteConstantBuffer);
 
     // Materials
     MaterialPropertiesConstantBuffer materialProperties;
@@ -1082,15 +1083,15 @@ void DrawScene(ConstantBuffer* cb)
     g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
     g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
 
-    XMMATRIX mGO = XMLoadFloat4x4(g_pGameObject->getTransform());
+    /*XMMATRIX mGO = XMLoadFloat4x4(g_pGameObject->getTransform());
     cb->mWorld = XMMatrixTranspose(mGO);
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, cb, 0, 0);
-    g_pGameObject->draw(g_pImmediateContext);
+    g_pGameObject->draw(g_pImmediateContext);*/
 
     g_Terrain.IsTerrain = 1;
     g_pImmediateContext->UpdateSubresource(g_pTerrainConstantBuffer, 0, nullptr, &g_Terrain, 0, 0);
 
-    mGO = XMLoadFloat4x4(g_pTerrainObject->getTransform());
+    XMMATRIX mGO = XMLoadFloat4x4(g_pTerrainObject->getTransform());
     cb->mWorld = XMMatrixTranspose(mGO);
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, cb, 0, 0);
     g_pTerrainObject->draw(g_pImmediateContext);
@@ -1104,16 +1105,16 @@ void DrawSceneSprites()
     g_pImmediateContext->GSSetShader(g_pGeometryBillboardShader, nullptr, 0);
     g_pImmediateContext->PSSetShader(g_pBillPS, nullptr, 0);
 
-    UINT stride = sizeof(SCREEN_VERTEX);
+    /*UINT stride = sizeof(SCREEN_VERTEX);
     UINT offset = 0;
     ID3D11Buffer* pSpriteBuffers[1] = { g_pSpriteVertexBuffer };
     g_pImmediateContext->IASetVertexBuffers(0, 1, pSpriteBuffers, &stride, &offset);
     g_pImmediateContext->IASetInputLayout(g_pQuadLayout);
-    g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+    g_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);*/
 
-    g_pImmediateContext->PSSetShaderResources(0, 1, &g_pSpriteTexture);
+    /*g_pImmediateContext->PSSetShaderResources(0, 1, &g_pSpriteTexture);
     g_pImmediateContext->GSSetConstantBuffers(3, 1, &g_pSpriteConstantBuffer);
-    g_pImmediateContext->Draw(g_numberOfSprites, 0);
+    g_pImmediateContext->Draw(g_numberOfSprites, 0);*/
 }
 
 void Bloom(ConstantBuffer* cb)
@@ -1303,6 +1304,7 @@ void Render()
     cb1.mProjection = XMMatrixTranspose(XMLoadFloat4x4(&p));
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, &cb1, 0, 0);
     g_pImmediateContext->GSSetConstantBuffers(0, 1, &g_pConstantBuffer);
+    g_pImmediateContext->HSSetConstantBuffers(0, 1, &g_pConstantBuffer);
     g_pImmediateContext->DSSetConstantBuffers(0, 1, &g_pConstantBuffer);
 
     setupConstantBuffers();
@@ -1350,11 +1352,11 @@ void Render()
     ImGui::SliderFloat("Height Factor", &g_heightFactor, 0.0f, 20.0f);
     ImGui::End();
 
-    if (prevHeight != g_heightFactor)
+    /*if (prevHeight != g_heightFactor)
     {
         g_pTerrainObject->SetHeight(g_heightFactor);
         g_pTerrainObject->initMesh(g_pd3dDevice, g_pImmediateContext);
-    }
+    }*/
 
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

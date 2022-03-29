@@ -123,7 +123,7 @@ ID3D11DomainShader*			g_pDomainShader = nullptr;
 D3D11_RASTERIZER_DESC		g_wfdescNormal;
 D3D11_RASTERIZER_DESC		g_wfdescWireframe;
 bool						g_isWireframe = false;
-float						g_tessFactor = 0.1f;
+float						g_tessFactor = 1.0f;
 
 ID3D11VertexShader*			g_pTerrainVS = nullptr;
 TerrainProperties			g_Terrain;
