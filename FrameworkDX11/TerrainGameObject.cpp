@@ -1,7 +1,7 @@
 #include "TerrainGameObject.h"
 #include <fstream>
 
-#define GRID_SIZE 257
+#define GRID_SIZE 513
 
 TerrainGameObject::TerrainGameObject() : DrawableGameObject()
 {
@@ -16,6 +16,13 @@ TerrainGameObject::TerrainGameObject() : DrawableGameObject()
     for (unsigned int i = 0; i < GRID_SIZE; ++i)
     {
         heightArray[i] = new float[GRID_SIZE];
+    }
+    for (unsigned int i = 0; i < GRID_SIZE; ++i)
+    {
+        for (unsigned int j = 0; j < GRID_SIZE; ++j)
+        {
+            heightArray[i][j] = 0.0f;
+        }
     }
 
     srand(time(0));
@@ -50,6 +57,117 @@ TerrainGameObject::~TerrainGameObject()
 int Random(int min = 0, int max = 255)
 {
     return min + (rand() % int(max - min + 1));
+}
+
+void TerrainGameObject::FaultAlgorithm()
+{
+    const float bias = 0.02f;
+    const float initialDisp = 1.0f;
+    const float finalDisp = 0.0f;
+    const float totalIterations = 1024;
+    float displacement = initialDisp;
+    float v, a, b, c, x1, x2, y1, y2;
+
+    for (unsigned int k = 0; k < totalIterations; ++k)
+    {
+        x1 = Random(0, GRID_SIZE) - GRID_SIZE / 2;
+        y1 = Random(0, GRID_SIZE) - GRID_SIZE / 2;
+        x2 = Random(0, GRID_SIZE) - GRID_SIZE / 2;
+        y2 = Random(0, GRID_SIZE) - GRID_SIZE / 2;
+        a = (y2 - y1);
+        b = -(x2 - x1);
+        c = -x1 * (y2 - y1) + y1 * (x2 - x1);
+
+        for (unsigned int i = 0; i < GRID_SIZE; ++i)
+        {
+            for (unsigned int j = 0; j < GRID_SIZE; ++j)
+            {
+                if ((a * j) + (b * i) > c)
+                {
+                    heightArray[i][j] += (bias + displacement);
+                }
+                else
+                {
+                    heightArray[i][j] += (bias - displacement);
+                }
+            }
+        }
+
+        displacement = initialDisp + (k / totalIterations) * (finalDisp - initialDisp);
+    }
+}
+
+void TerrainGameObject::Deposit(int x, int y)
+{
+    const int displacement = 1.0f;
+    int i, j, storedI, storedJ;
+    bool flag = false;
+    for (i = -1; i <= 1; ++i)
+    {
+        for (j = -1; j <= 1; ++j)
+        {
+            if (i != 0 && j != 0 && x + i > -1 && x + i < GRID_SIZE && y + j > -1 && y + j < GRID_SIZE
+                && heightArray[x + i][y + j] < heightArray[x][y])
+            {
+                storedI = i;
+                storedJ = j;
+                flag = true;
+            }
+        }
+    }
+
+    if (flag)
+    {
+        Deposit(x + storedI, y + storedJ);
+    }
+    else
+    {
+        heightArray[x][y] += displacement;
+    }
+}
+
+void TerrainGameObject::ParticleDeposition()
+{
+    const float initDisp = 8.0f;
+    for (unsigned int i = 0; i < GRID_SIZE; ++i)
+    {
+        for (unsigned int j = 0; j < GRID_SIZE; ++j)
+        {
+            heightArray[i][j] = initDisp;
+        }
+    }
+    const int iterations = 1000000;
+    int prevX = Random(0, GRID_SIZE-1);
+    int prevY = Random(0, GRID_SIZE-1);
+    int randDir;
+    for (unsigned int k = 0; k < iterations; ++k)
+    {
+        randDir = rand() % 4;
+        switch (randDir)
+        {
+        case 0:
+            --prevY;
+            if (prevY < 0)
+                prevY += GRID_SIZE - 1;
+            break;
+        case 1:
+            ++prevY;
+            if (prevY > GRID_SIZE - 1)
+                prevY -= GRID_SIZE - 1;
+            break;
+        case 2:
+            --prevX;
+            if (prevX < 0)
+                prevX += GRID_SIZE - 1;
+            break;
+        case 3:
+            ++prevX;
+            if (prevX > GRID_SIZE - 1)
+                prevX -= GRID_SIZE - 1;
+            break;
+        }
+        Deposit(prevX, prevY);
+    }
 }
 
 void TerrainGameObject::Average(int x, int y, int sideLength)
@@ -165,7 +283,9 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
 	vector<XMFLOAT2> texCoords;
 
     //vector<float>* heights = LoadHeightMap();
-    DiamondSquareAlgorithm();
+    //DiamondSquareAlgorithm();
+    //FaultAlgorithm();
+    ParticleDeposition();
 
     for (unsigned int i = 0; i < GRID_SIZE; ++i)
     {
@@ -175,9 +295,9 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
                                     heights->at(j + i * GRID_WIDTH),
                                     (float)j - GRID_DEPTH / 2 });*/
 
-            positions.push_back({ (float)i - GRID_SIZE / 2,
+            positions.push_back({ (float)i - GRID_SIZE / 4,
                                     heightArray[i][j],
-                                    (float)j - GRID_SIZE / 2 });
+                                    (float)j - GRID_SIZE / 4 });
         }
     }
     texCoords.push_back({ 0.0f, 0.0f });

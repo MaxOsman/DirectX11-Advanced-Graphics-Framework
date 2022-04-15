@@ -20,6 +20,9 @@ public:
 
 private:
 	vector<float>* LoadHeightMap();
+	void FaultAlgorithm();
+	void Deposit(int x, int y);
+	void ParticleDeposition();
 	void DiamondSquareAlgorithm();
 	void DiamondStage(int sideLength);
 	void SquareStage(int sideLength);

@@ -786,7 +786,7 @@ HRESULT	InitWorld(int width, int height)
     g_pTerrainObject->setPosition({ 0.0f, -10.0f, 0.0f });
     g_pTerrainObject->setScale({0.2f, 0.2f, 0.2f});
 
-    g_LightPos = { 0.0f, 0.0f, -4.0f, 0.0f };
+    g_LightPos = { 24, 0.0f, 24, 0.0f };
 
 	return S_OK;
 }
@@ -1021,9 +1021,9 @@ void setupConstantBuffers()
     lightProperties.Lights[0].LightType = PointLight;
     lightProperties.Lights[0].Color = XMFLOAT4(Colors::White);
     lightProperties.Lights[0].SpotAngle = XMConvertToRadians(45.0f);
-    lightProperties.Lights[0].ConstantAttenuation = 0.18;
-    lightProperties.Lights[0].LinearAttenuation = 0.18;
-    lightProperties.Lights[0].QuadraticAttenuation = 0.18;
+    lightProperties.Lights[0].ConstantAttenuation = 0.1;
+    lightProperties.Lights[0].LinearAttenuation = 0.1;
+    lightProperties.Lights[0].QuadraticAttenuation = 0.1;
     lightProperties.Lights[0].Position = { g_LightPos.x + guiLightX, g_LightPos.y + guiLightY, g_LightPos.z + guiLightZ, 0.0f };
     XMVECTOR LightDirection = XMVectorSet(-(g_LightPos.x + guiLightX), -(g_LightPos.y + guiLightY), -(g_LightPos.z + guiLightZ), 0.0f);
     LightDirection = XMVector3Normalize(LightDirection);
