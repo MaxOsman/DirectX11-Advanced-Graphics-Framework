@@ -351,6 +351,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Bone.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CubeGameObject.h" />
     <ClInclude Include="DDSTextureLoader.h" />
@@ -365,6 +366,8 @@
     <ClInclude Include="imgui-master\imstb_textedit.h" />
     <ClInclude Include="imgui-master\imstb_truetype.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="ModelGameObject.h" />
+    <ClInclude Include="Quaternion.h" />
     <CLInclude Include="resource.h" />
     <ClInclude Include="Spline.h" />
     <ClInclude Include="structures.h" />
@@ -372,6 +375,7 @@
     <ResourceCompile Include="Tutorial01.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Bone.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CubeGameObject.cpp" />
     <ClCompile Include="DDSTextureLoader.cpp" />
@@ -384,6 +388,7 @@
     <ClCompile Include="imgui-master\imgui_tables.cpp" />
     <ClCompile Include="imgui-master\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ModelGameObject.cpp" />
     <ClCompile Include="Spline.cpp" />
     <ClCompile Include="TerrainGameObject.cpp" />
   </ItemGroup>

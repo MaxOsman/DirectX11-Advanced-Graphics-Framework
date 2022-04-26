@@ -36,6 +36,12 @@
     <ClCompile Include="TerrainGameObject.cpp">
       <Filter>GameObjects</Filter>
     </ClCompile>
+    <ClCompile Include="ModelGameObject.cpp">
+      <Filter>GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Bone.cpp">
+      <Filter>GameObjects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -76,6 +82,15 @@
       <Filter>GameObjects</Filter>
     </ClInclude>
     <ClInclude Include="TerrainGameObject.h">
+      <Filter>GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelGameObject.h">
+      <Filter>GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Bone.h">
+      <Filter>GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Quaternion.h">
       <Filter>GameObjects</Filter>
     </ClInclude>
   </ItemGroup>

@@ -17,6 +17,7 @@
 #include "main.h"
 #include "CubeGameObject.h"
 #include "TerrainGameObject.h"
+#include "ModelGameObject.h"
 #include "Camera.h"
 #include "Debug.h"
 #include "Spline.h"
@@ -432,6 +433,10 @@ HRESULT InitDevice()
     if (FAILED(hr))
         return hr;
 
+    hr = g_pModelObject->InitMesh(g_pd3dDevice, g_pImmediateContext);
+    if (FAILED(hr))
+        return hr;
+
     // ImGui Setup
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -777,16 +782,18 @@ HRESULT	InitMesh()
 // ***************************************************************************************
 HRESULT	InitWorld(int width, int height)
 {
-    g_pCamera = new Camera(WINDOW_HEIGHT, WINDOW_WIDTH, XMFLOAT3(0.0f, 0.0f, -3.0f), XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(0.0f, 1.0f, 0.0f));
+    g_pCamera = new Camera(WINDOW_HEIGHT, WINDOW_WIDTH, XMFLOAT3(12, 0.0f, 9), XMFLOAT3(12, 0.0f, 12), XMFLOAT3(0.0f, 1.0f, 0.0f));
     g_pDebug = new Debug();
     g_pGameObject = new CubeGameObject();
     g_pTerrainObject = new TerrainGameObject();
+    g_pTerrainObject->initMesh(g_pd3dDevice, g_pImmediateContext, 0);
+    g_pModelObject = new ModelGameObject(g_pd3dDevice, g_pImmediateContext);
 
-    g_pGameObject->setPosition({ 0.0f, 0.0f, 0.0f });
-    g_pTerrainObject->setPosition({ 0.0f, -10.0f, 0.0f });
-    g_pTerrainObject->setScale({0.2f, 0.2f, 0.2f});
+    g_pGameObject->setPosition({ 12, 0.0f, 12 });
+    g_pTerrainObject->setPosition({ 0.0f, -6.5f, 0.0f });
+    g_pTerrainObject->setScale({0.1f, 0.1f, 0.1f});
 
-    g_LightPos = { 24, 0.0f, 24, 0.0f };
+    g_LightPos = { 12, 10.0f, 12, 0.0f };
 
 	return S_OK;
 }
@@ -804,6 +811,13 @@ void CleanupDevice()
     g_pGameObject->cleanup();
     g_pGameObject = nullptr;
     delete g_pGameObject;
+
+    g_pTerrainObject->cleanup();
+    g_pTerrainObject = nullptr;
+    delete g_pTerrainObject;
+
+    g_pModelObject = nullptr;
+    delete g_pModelObject;
 
     // Remove any bound render target or depth/stencil buffer
     ID3D11RenderTargetView* nullViews[] = { nullptr };
@@ -1021,9 +1035,9 @@ void setupConstantBuffers()
     lightProperties.Lights[0].LightType = PointLight;
     lightProperties.Lights[0].Color = XMFLOAT4(Colors::White);
     lightProperties.Lights[0].SpotAngle = XMConvertToRadians(45.0f);
-    lightProperties.Lights[0].ConstantAttenuation = 0.1;
-    lightProperties.Lights[0].LinearAttenuation = 0.1;
-    lightProperties.Lights[0].QuadraticAttenuation = 0.1;
+    lightProperties.Lights[0].ConstantAttenuation = 0.25;
+    lightProperties.Lights[0].LinearAttenuation = 0.25;
+    lightProperties.Lights[0].QuadraticAttenuation = 0.25;
     lightProperties.Lights[0].Position = { g_LightPos.x + guiLightX, g_LightPos.y + guiLightY, g_LightPos.z + guiLightZ, 0.0f };
     XMVECTOR LightDirection = XMVectorSet(-(g_LightPos.x + guiLightX), -(g_LightPos.y + guiLightY), -(g_LightPos.z + guiLightZ), 0.0f);
     LightDirection = XMVector3Normalize(LightDirection);
@@ -1083,15 +1097,15 @@ void DrawScene(ConstantBuffer* cb)
     g_pImmediateContext->DSSetShader(g_pDomainShader, nullptr, 0);
     g_pImmediateContext->IASetInputLayout(g_pVertexLayout);
 
-    /*XMMATRIX mGO = XMLoadFloat4x4(g_pGameObject->getTransform());
+    XMMATRIX mGO = XMLoadFloat4x4(g_pModelObject->GetTransform());
     cb->mWorld = XMMatrixTranspose(mGO);
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, cb, 0, 0);
-    g_pGameObject->draw(g_pImmediateContext);*/
+    g_pModelObject->Draw(g_pImmediateContext);
 
     g_Terrain.IsTerrain = 1;
     g_pImmediateContext->UpdateSubresource(g_pTerrainConstantBuffer, 0, nullptr, &g_Terrain, 0, 0);
 
-    XMMATRIX mGO = XMLoadFloat4x4(g_pTerrainObject->getTransform());
+    mGO = XMLoadFloat4x4(g_pTerrainObject->getTransform());
     cb->mWorld = XMMatrixTranspose(mGO);
     g_pImmediateContext->UpdateSubresource(g_pConstantBuffer, 0, nullptr, cb, 0, 0);
     g_pTerrainObject->draw(g_pImmediateContext);
@@ -1288,7 +1302,8 @@ void Render()
 
     // Update the cube transform, material etc.
     float tempT = (guiRotation ? t : 0);
-    g_pGameObject->update(tempT, g_pImmediateContext);
+    //g_pGameObject->update(tempT, g_pImmediateContext);
+    g_pModelObject->Update(tempT, g_pImmediateContext);
     g_pTerrainObject->update(g_pImmediateContext);
     g_pCamera->Update(g_hWnd);
     HandlePerFrameInput(t);
@@ -1335,11 +1350,14 @@ void Render()
     ImGui::NewFrame();
 
     float prevHeight = g_heightFactor;
+    int prevTerrain = guiTerrainType;
 
     // The window
     ImGui::Begin("Options");
-    static const char* items[]{ "Diffuse", "Normals", "Parallax", "Parallax Occlusion", "Self-Shadowing POM"};
-    ImGui::ListBox("Shading", &materialSelection, items, ARRAYSIZE(items));
+    static const char* items[]{ "From File", "Fault Lines", "Particle Deposition", "Diamond Square" };
+    ImGui::ListBox("Shading", &guiTerrainType, items, ARRAYSIZE(items));
+    //static const char* items[]{ "Diffuse", "Normals", "Parallax", "Parallax Occlusion", "Self-Shadowing POM"};
+    //ImGui::ListBox("Shading", &materialSelection, items, ARRAYSIZE(items));
     //static const char* items2[]{ "Default", "Depth Render", "Invert Colours" };
     //ImGui::ListBox("Render Mode", &guiSelection, items2, ARRAYSIZE(items2));
     ImGui::SliderFloat("Light X Pos", &guiLightX, -5.0f, 5.0f);
@@ -1357,6 +1375,11 @@ void Render()
         g_pTerrainObject->SetHeight(g_heightFactor);
         g_pTerrainObject->initMesh(g_pd3dDevice, g_pImmediateContext);
     }*/
+    if (guiTerrainType != prevTerrain)
+    {
+        // Change terrain type
+        g_pTerrainObject->initMesh(g_pd3dDevice, g_pImmediateContext, guiTerrainType);
+    }
 
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

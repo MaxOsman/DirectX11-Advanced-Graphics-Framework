@@ -22,6 +22,7 @@ class Camera;
 class DrawableGameObject;
 class CubeGameObject;
 class TerrainGameObject;
+class ModelGameObject;
 class Debug;
 
 typedef vector<DrawableGameObject*> vecDrawables;
@@ -86,7 +87,6 @@ SCREEN_VERTEX				g_ScreenQuad[4];
 TextureSet					g_DepthTexture;
 ID3D11GeometryShader*		g_pDepthGS = nullptr;
 ID3D11PixelShader*			g_pDepthPS = nullptr;
-
 ID3D11PixelShader*			g_pTintPS = nullptr;
 
 // Bloom
@@ -101,9 +101,9 @@ int							g_viewHeight;
 
 CubeGameObject*				g_pGameObject;
 TerrainGameObject*			g_pTerrainObject;
+ModelGameObject*			g_pModelObject;
 Camera*						g_pCamera;
 Debug*						g_pDebug;
-//Spline					g_Spline;
 XMFLOAT4					g_LightPos;
 
 // ImGui
@@ -114,6 +114,7 @@ bool						guiMotionBlur = false;
 float						guiLightX = 0.0f;
 float						guiLightY = 0.0f;
 float						guiLightZ = 0.0f;
+int							guiTerrainType = 0;
 
 MaterialPropertiesConstantBuffer	g_Material;
 

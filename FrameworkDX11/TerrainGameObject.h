@@ -11,7 +11,8 @@ public:
 	TerrainGameObject();
 	~TerrainGameObject();
 
-	HRESULT	initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext);
+	HRESULT	initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext) { return HRESULT(); }
+	HRESULT	initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext, int type);
 
 	void draw(ID3D11DeviceContext* pContext);
 	void draw(ID3D11DeviceContext* pContext, ID3D11ShaderResourceView* texture);
@@ -19,7 +20,7 @@ public:
 	void SetHeight(float h) { height = h; }
 
 private:
-	vector<float>* LoadHeightMap();
+	void LoadHeightMap();
 	void FaultAlgorithm();
 	void Deposit(int x, int y);
 	void ParticleDeposition();
@@ -33,6 +34,6 @@ private:
 	ID3D11ShaderResourceView* m_pNormalTexture;
 
 	float height = 10.0f;
-	int range = 32;
+	int range;
 	float** heightArray;
 };

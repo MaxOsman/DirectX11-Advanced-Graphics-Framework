@@ -17,13 +17,6 @@ TerrainGameObject::TerrainGameObject() : DrawableGameObject()
     {
         heightArray[i] = new float[GRID_SIZE];
     }
-    for (unsigned int i = 0; i < GRID_SIZE; ++i)
-    {
-        for (unsigned int j = 0; j < GRID_SIZE; ++j)
-        {
-            heightArray[i][j] = 0.0f;
-        }
-    }
 
     srand(time(0));
 }
@@ -61,7 +54,7 @@ int Random(int min = 0, int max = 255)
 
 void TerrainGameObject::FaultAlgorithm()
 {
-    const float bias = 0.02f;
+    const float bias = 0.0f;
     const float initialDisp = 1.0f;
     const float finalDisp = 0.0f;
     const float totalIterations = 1024;
@@ -99,9 +92,9 @@ void TerrainGameObject::FaultAlgorithm()
 
 void TerrainGameObject::Deposit(int x, int y)
 {
-    const int displacement = 1.0f;
+    const float displacement = 1.0f;
     int i, j, storedI, storedJ;
-    bool flag = false;
+    bool hasPlace = false;
     for (i = -1; i <= 1; ++i)
     {
         for (j = -1; j <= 1; ++j)
@@ -111,12 +104,12 @@ void TerrainGameObject::Deposit(int x, int y)
             {
                 storedI = i;
                 storedJ = j;
-                flag = true;
+                hasPlace = true;
             }
         }
     }
 
-    if (flag)
+    if (hasPlace)
     {
         Deposit(x + storedI, y + storedJ);
     }
@@ -128,7 +121,7 @@ void TerrainGameObject::Deposit(int x, int y)
 
 void TerrainGameObject::ParticleDeposition()
 {
-    const float initDisp = 8.0f;
+    const float initDisp = 0.0f;
     for (unsigned int i = 0; i < GRID_SIZE; ++i)
     {
         for (unsigned int j = 0; j < GRID_SIZE; ++j)
@@ -215,10 +208,12 @@ void TerrainGameObject::DiamondStage(int sideLength)
     for (unsigned int y = 0; y < GRID_SIZE / (sideLength - 1); ++y)
     {
         centerY = y * (sideLength - 1) + halfSide;
+        centerX = halfSide - (sideLength - 1);
         for (unsigned int x = 0; x < GRID_SIZE / (sideLength - 1); ++x)
         {
             // Optimise this later!
-            centerX = x * (sideLength - 1) + halfSide;
+            //centerX = x * (sideLength - 1) + halfSide;
+            centerX += (sideLength - 1);
 
             int average = ( heightArray[x * (sideLength - 1)][y * (sideLength - 1)] +
                             heightArray[x * (sideLength - 1)][(y+1) * (sideLength - 1)] +
@@ -247,6 +242,8 @@ void TerrainGameObject::SquareStage(int sideLength)
 
 void TerrainGameObject::DiamondSquareAlgorithm()
 {
+    range = 32;
+
     heightArray[0][0] = Random(0, 32);
     heightArray[0][GRID_SIZE - 1] = Random(0, 32);
     heightArray[GRID_SIZE - 1][0] = Random(0, 32);
@@ -277,24 +274,38 @@ void TerrainGameObject::DiamondSquareAlgorithm()
     }
 }
 
-HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext)
+HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext, int type)
 {
 	vector<XMFLOAT3> positions;
 	vector<XMFLOAT2> texCoords;
-
-    //vector<float>* heights = LoadHeightMap();
-    //DiamondSquareAlgorithm();
-    //FaultAlgorithm();
-    ParticleDeposition();
-
     for (unsigned int i = 0; i < GRID_SIZE; ++i)
     {
         for (unsigned int j = 0; j < GRID_SIZE; ++j)
         {
-            /*positions.push_back({   (float)i - GRID_WIDTH / 2,
-                                    heights->at(j + i * GRID_WIDTH),
-                                    (float)j - GRID_DEPTH / 2 });*/
+            heightArray[i][j] = 0.0f;
+        }
+    }
 
+    switch (type)
+    {
+    case 0:
+        LoadHeightMap();
+        break;
+    case 1:
+        FaultAlgorithm();
+        break;
+    case 2:
+        ParticleDeposition();
+        break;
+    case 3:
+        DiamondSquareAlgorithm();
+        break;
+    }
+    
+    for (unsigned int i = 0; i < GRID_SIZE; ++i)
+    {
+        for (unsigned int j = 0; j < GRID_SIZE; ++j)
+        {
             positions.push_back({ (float)i - GRID_SIZE / 4,
                                     heightArray[i][j],
                                     (float)j - GRID_SIZE / 4 });
@@ -341,7 +352,7 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
     hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\lightdirt.dds", nullptr, &m_pTerrainTextures[2]);
     hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\snow.dds", nullptr, &m_pTerrainTextures[3]);
     hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\stone.dds", nullptr, &m_pTerrainTextures[4]);
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\rock_height.dds", nullptr, &m_pHeightTexture);
+    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\rock_height3.dds", nullptr, &m_pHeightTexture);
     hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\rock_bump.dds", nullptr, &m_pNormalTexture);
 	if (FAILED(hr))
 		return hr;
@@ -360,20 +371,18 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
 	positions.clear();
 	texCoords.clear();
     delete[] finalVertices;
-    //heights->clear();
-    //delete heights;
 
 	return hr;
 }
 
-vector<float>* TerrainGameObject::LoadHeightMap()
+void TerrainGameObject::LoadHeightMap()
 {
     // A height for each vertex 
     vector<unsigned char> in(GRID_SIZE * GRID_SIZE);
 
     // Open the file.
     ifstream inFile;
-    inFile.open("Resources\\rock_height.dds", ios_base::binary);
+    inFile.open("Resources\\rock_height3.dds", ios_base::binary);
 
     if (inFile)
     {
@@ -382,13 +391,10 @@ vector<float>* TerrainGameObject::LoadHeightMap()
         inFile.close();
     }
 
-    vector<float>* tempHeights = new vector<float>;
     for (UINT i = 0; i < GRID_SIZE * GRID_SIZE; ++i)
     {
-        tempHeights->push_back((1 - (in[i] / 255.0f)) * height);
+        heightArray[i % GRID_SIZE][i / GRID_SIZE] = (1 - (in[i] / 255.0f)) * height;
     }
-
-    return tempHeights;
 }
 
 void TerrainGameObject::draw(ID3D11DeviceContext* pContext, ID3D11ShaderResourceView* texture)
