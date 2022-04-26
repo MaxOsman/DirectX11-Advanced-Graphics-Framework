@@ -352,7 +352,6 @@ HRESULT TerrainGameObject::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContex
     hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\lightdirt.dds", nullptr, &m_pTerrainTextures[2]);
     hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\snow.dds", nullptr, &m_pTerrainTextures[3]);
     hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\Terrain\\stone.dds", nullptr, &m_pTerrainTextures[4]);
-    hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\rock_height3.dds", nullptr, &m_pHeightTexture);
     hr = CreateDDSTextureFromFile(pd3dDevice, L"Resources\\rock_bump.dds", nullptr, &m_pNormalTexture);
 	if (FAILED(hr))
 		return hr;
@@ -382,7 +381,7 @@ void TerrainGameObject::LoadHeightMap()
 
     // Open the file.
     ifstream inFile;
-    inFile.open("Resources\\rock_height3.dds", ios_base::binary);
+    inFile.open("Resources\\rock_height.dds", ios_base::binary);
 
     if (inFile)
     {
@@ -419,7 +418,6 @@ void TerrainGameObject::draw(ID3D11DeviceContext* pContext)
     pContext->PSSetShaderResources(5, 1, &m_pTerrainTextures[1]);
     pContext->PSSetShaderResources(6, 1, &m_pTerrainTextures[2]);
     pContext->PSSetShaderResources(7, 1, &m_pTerrainTextures[3]);
-    pContext->DSSetShaderResources(8, 1, &m_pHeightTexture);
     pContext->DSSetShaderResources(1, 1, &m_pNormalTexture);
     pContext->DSSetSamplers(0, 1, &m_pSamplerLinear);
     pContext->PSSetSamplers(0, 1, &m_pSamplerLinear);

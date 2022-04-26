@@ -14,6 +14,8 @@ public:
 	void draw(ID3D11DeviceContext* pContext);
 	void draw(ID3D11DeviceContext* pContext, ID3D11ShaderResourceView* texture);
 
+	void boneUpdate(ID3D11DeviceContext* pContext);
+
 private:
 	Quaternion m_orientation;
 	std::vector<Bone*> m_childBones;

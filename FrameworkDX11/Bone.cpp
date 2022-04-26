@@ -96,6 +96,11 @@ HRESULT Bone::initMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext)
 	return hr;
 }
 
+void Bone::boneUpdate(ID3D11DeviceContext* pContext)
+{
+
+}
+
 void Bone::draw(ID3D11DeviceContext* pContext, ID3D11ShaderResourceView* texture)
 {
     draw(pContext);
@@ -121,4 +126,9 @@ void Bone::draw(ID3D11DeviceContext* pContext)
     pContext->PSSetSamplers(0, 1, &m_pSamplerLinear);
 
     pContext->Draw(NUM_VERTICES, 0);
+
+	for (size_t i = 0; i < m_childBones.size(); ++i)
+	{
+		m_childBones.at(i)->draw(pContext);
+	}
 }

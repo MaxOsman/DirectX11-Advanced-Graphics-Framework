@@ -23,6 +23,11 @@ void ModelGameObject::Update(float t, ID3D11DeviceContext* pContext)
 	m_pRootBone->update(t, pContext);
 }
 
+void ModelGameObject::Update(ID3D11DeviceContext* pContext)
+{
+	m_pRootBone->update(pContext);
+}
+
 HRESULT ModelGameObject::InitMesh(ID3D11Device* pd3dDevice, ID3D11DeviceContext* pContext)
 {
 	return m_pRootBone->initMesh(pd3dDevice, pContext);

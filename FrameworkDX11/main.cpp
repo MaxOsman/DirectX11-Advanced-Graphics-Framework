@@ -1303,7 +1303,7 @@ void Render()
     // Update the cube transform, material etc.
     float tempT = (guiRotation ? t : 0);
     //g_pGameObject->update(tempT, g_pImmediateContext);
-    g_pModelObject->Update(tempT, g_pImmediateContext);
+    g_pModelObject->Update(g_pImmediateContext);
     g_pTerrainObject->update(g_pImmediateContext);
     g_pCamera->Update(g_hWnd);
     HandlePerFrameInput(t);
@@ -1364,9 +1364,9 @@ void Render()
     ImGui::SliderFloat("Light Y Pos", &guiLightY, -5.0f, 5.0f);
     ImGui::SliderFloat("Light Z Pos", &guiLightZ, -5.0f, 5.0f);
     //ImGui::Checkbox("Enable Motion Blur", &guiMotionBlur);
-    ImGui::Checkbox("Enable Rotation", &guiRotation);
+    //ImGui::Checkbox("Enable Rotation", &guiRotation);
     ImGui::Checkbox("Enable Wireframe", &g_isWireframe);
-    ImGui::SliderFloat("Tesselation Factor", &g_tessFactor, 0.001f, 10.0f);
+    ImGui::SliderFloat("Tesselation Factor", &g_tessFactor, 0.001f, 2.0f);
     ImGui::SliderFloat("Height Factor", &g_heightFactor, 0.0f, 20.0f);
     ImGui::End();
 
